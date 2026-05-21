@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>こころのガチャ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!--
+    課題説明（レベルアップ版）：
+    既存のクリック→ランダム表示→DOM操作→カウント処理 をベースに、
+    「レアリティシステム（N/R/SR/SSR の重み付き抽選）」と
+    「コレクション機能（localStorage 保存）」を追加した。
+    レア度に応じた派手な演出（揺れの強化・オーラ・全画面キラキラ）を実装。
+  -->
+
+  <div class="app">
+
+    <!-- タイトル -->
+    <header class="header">
+      <h1 class="title">こころのガチャ</h1>
+      <p class="subtitle">回すたびに、少しだけ気持ちが軽くなる。</p>
+    </header>
+
+    <!-- ガチャマシーン本体 -->
+    <div id="gacha-machine" class="gacha-machine">
+      <img src="img/gacha.png" alt="ガチャマシーン" class="gacha-image"
+           onerror="this.style.display='none'; document.getElementById('gacha-fallback').style.display='flex';">
+      <div id="gacha-fallback" class="gacha-fallback">🎰</div>
+      <!-- レア度に応じて点灯するオーラ -->
+      <div class="machine-aura"></div>
+    </div>
+
+    <!-- ガチャを回すボタン -->
+    <button id="gacha-button" class="gacha-button" type="button">ガチャを回す</button>
+
+    <!-- 結果表示エリア（カード風） -->
+    <div id="result-card" class="result-card">
+      <div class="result-header">
+        <span id="rarity-badge" class="rarity-badge"></span>
+        <span id="new-badge" class="new-badge">NEW!</span>
+      </div>
+      <div class="capsule-icon"></div>
+      <p id="category" class="category">今日のカプセル</p>
+      <p id="message" class="message">ボタンを押すと、言葉が出てきます。</p>
+    </div>
+
+    <!-- ステータス（回数・コレクション・リセット） -->
+    <div class="status-area">
+      <p id="count-text" class="count-text">回した回数：0回</p>
+      <p id="collection-text" class="collection-text">コレクション：0 / 12</p>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <button id="reset-button" class="reset-button" type="button">コレクションをリセット</button>
+    </div>
+
+  </div>
+
+  <!-- SSR専用：全画面キラキラエフェクト -->
+  <div id="ssr-overlay" class="ssr-overlay" aria-hidden="true">
+    <div class="ssr-flash"></div>
+    <div class="sparkles">
+      <span>✨</span><span>✨</span><span>✨</span><span>✨</span>
+      <span>✨</span><span>✨</span><span>✨</span><span>✨</span>
+      <span>✨</span><span>✨</span><span>✨</span><span>✨</span>
+    </div>
+  </div>
+
+  <!-- jQuery を CDN から読み込み -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <!-- 自作のスクリプトは jQuery より後に読み込む -->
+  <script src="js/script.js"></script>
+</body>
+</html>
