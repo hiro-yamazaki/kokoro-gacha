@@ -184,13 +184,6 @@ $(function () {
       $("#category").text(selected.category);
       $("#message").text(selected.message);
 
-      // レア度バッジ
-      const $badge = $("#rarity-badge");
-      $badge.removeClass("show rarity-n rarity-r rarity-sr rarity-ssr")
-            .addClass("rarity-" + selected.rarity.toLowerCase())
-            .text(selected.rarity);
-      setTimeout(function () { $badge.addClass("show"); }, 50);
-
       // 結果カードのレア度別装飾
       const $card = $("#result-card");
       $card.removeClass("fade-in card-r card-sr card-ssr");
