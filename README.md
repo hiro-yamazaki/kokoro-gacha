@@ -1,4 +1,11 @@
-# こころのガチャ v3（習慣化フォーカス版）
+# こころのガチャ v4（習慣化フォーカス版）
+
+> **コード読解ガイド**：各ファイルに学習用コメントを多数記載しています。
+> - `js/script.js` … 関数の役割・Web Audio・Canvas・天井ロジックなどを日本語解説
+> - `css/style.css` … CSS変数・color-mix・backdrop-filter・@keyframes の使い方
+> - `index.html` … `<symbol>`/`<use>`、PWA設定、ボトムナビ構造の解説
+> - `sw.js` … Service Worker のライフサイクル (install/activate/fetch) を全行解説
+
 
 毎日3分、自分の心と向き合う習慣のためのガチャアプリ。
 ガチャの楽しさで継続を担保し、メッセージで自己受容を促す。

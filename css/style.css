@@ -1,11 +1,41 @@
 /* ========================================
-   こころのガチャ v3.1 - スタイルシート
+   こころのガチャ v4.0 - スタイルシート
    時間帯テーマ / 気分リアクティブ背景 / カスタムSVGアイコン
    ======================================== */
 
+/*
+  【全体構成】
+  1. カラーシステム (:root / data-time / data-mood) … 配色を変数化
+  2. アンビエント背景 (粒子アニメ)
+  3. ヘッダー / メイン / ナビ
+  4. デイリーカード / 気分セレクター
+  5. ガチャマシン / 確定演出 / shake バリエーション
+  6. ガチャボタン / 結果カード / カプセル
+  7. ステータス / 進捗バー / 図鑑 / お気に入り
+  8. モーダル / SSRオーバーレイ / トースト
+  9. 実績 / オンボーディング
+
+  【知っておくと読みやすい記法】
+  - var(--x)               … CSS変数を呼び出す
+  - color-mix(in srgb, A x%, B) … AとBを混ぜた色
+  - backdrop-filter: blur()    … 背景のすりガラス効果
+  - 単位 vh = 画面高さの%、vw = 画面幅の%
+  - inset: 0   … top/right/bottom/left を全部0
+  - flex: 1 1 auto … flex-grow:1 / shrink:1 / basis:auto の略
+  - cubic-bezier() … カスタムイージング (アニメの加減速曲線)
+  - @keyframes name { 0% {...} 100% {...} } … アニメ定義
+  - animation: name 1s ease infinite … 適用
+*/
+
+/* Google Fontsから2書体を読み込み (本文用 + 明朝体)。
+   weight をカンマで複数指定すると軽量・中量・太字を一括取得。 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Shippori+Mincho:wght@500;600&display=swap');
 
-/* ========== カラーシステム ========== */
+/* ========== カラーシステム ==========
+   :root はHTMLのルート要素を指す疑似クラス。
+   ここで定義した変数 (--xxx) はあらゆる箇所で var(--xxx) として再利用できる。
+   配色を一箇所で管理 → テーマ変更が楽。
+*/
 
 :root {
   /* ベーストーン (時間帯で上書き) */
@@ -50,7 +80,11 @@
   --nav-h: 68px;
 }
 
-/* ========== 時間帯テーマ ========== */
+/* ========== 時間帯テーマ ==========
+   body[data-time="夜"] のような属性セレクタ。
+   JS 側で document.body.setAttribute('data-time', 'night') すると
+   下記のブロックの変数値が上書きされ、画面全体のトーンが切り替わる。
+*/
 
 body[data-time="morning"] {
   --bg: #fbf5ed;
@@ -112,7 +146,12 @@ body {
 
 button { font-family: inherit; cursor: pointer; }
 
-/* ========== アンビエント背景 ========== */
+/* ========== アンビエント背景 ==========
+   画面全体に薄い色のグラデーション + 動く粒子を表示。
+   - position: fixed で画面に貼り付け
+   - z-index: 0 でメインコンテンツの後ろに配置
+   - pointer-events: none でクリックを邪魔しない
+*/
 
 .ambient {
   position: fixed;
@@ -191,6 +230,10 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ========== ヘッダー ========== */
 
+/* sticky: スクロールしても画面上部に貼り付く (top:0 で位置指定)
+   backdrop-filter: 背景に対するフィルター (ここではぼかし+彩度UP = すりガラス効果)
+   -webkit- 接頭辞は Safari 対応
+   color-mix: 2色を混ぜる (この場合「背景色88% + 透明12%」= 半透明) */
 .app-header {
   position: sticky;
   top: 0;
@@ -612,7 +655,9 @@ button { font-family: inherit; cursor: pointer; }
   100% { opacity: 0; transform: scale(0.9); }
 }
 
-/* shake バリエーション */
+/* shake バリエーション
+   ガチャマシンを揺らすアニメ。レア度別に異なる @keyframes を呼び出す。
+   JSで .shake-ssr などのクラスを add すると発動。 */
 .shake { animation: shake 0.5s; }
 .shake-r { animation: shakeStrong 0.7s; }
 .shake-sr { animation: shakeStrong 1.0s; }
@@ -821,7 +866,10 @@ button { font-family: inherit; cursor: pointer; }
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* カプセルアイコン (refined design) */
+/* カプセルアイコン (refined design)
+   ::before = 要素の前に擬似的に作る子要素。CSSだけで装飾を追加できる。
+   ここでは上半分と下半分を別々の擬似要素で作り、
+   "open" クラスが付くとそれぞれ離れるアニメで「カプセル開封」を表現。 */
 .capsule-icon {
   width: 56px;
   height: 56px;

@@ -1,13 +1,33 @@
 /* こころのガチャ Service Worker
- * Cache First 戦略でオフライン対応
- * GitHub Pages のサブディレクトリで動作するよう全パスを相対パスで扱う
+ * ============================================
+ * Service Worker (SW) とは?
+ *   ブラウザがWebサイト本体とは別に「裏側で動かす小さなプログラム」。
+ *   ページのfetch (リソース取得) を横取りして、キャッシュから返すことで
+ *   オフライン動作・高速化を実現する PWA の中核。
+ *
+ * ライフサイクル:
+ *   1. register (index.htmlの末尾で navigator.serviceWorker.register('./sw.js'))
+ *   2. install   - 初回ロード時。ここでファイルをキャッシュに保存。
+ *   3. activate  - 有効化。古いキャッシュの削除タイミング。
+ *   4. fetch     - 以降、すべてのリソース取得をここで横取りできる。
+ *
+ * 「Cache First」戦略:
+ *   先にキャッシュを確認 → あれば即返す (オフラインでも動く)、
+ *   なければネットワークから取りに行く。
+ *
+ * 注意:
+ *   - SWは普通のJSと違いDOM操作不可。fetch/cache APIだけが主役。
+ *   - self は SW 自身を指す (window の代わり)。
+ *   - すべてのコールバックは Promise ベース (非同期処理)。
  */
 
 const CACHE_NAME = 'kokoro-gacha-v1';
+// ↑ ファイルを更新したら 'v2', 'v3' のように番号を上げる。
+//   そうしないと古いキャッシュが返り続けて新しいコードが反映されない。
 
-// プリキャッシュ対象（Service Worker のスコープからの相対パス）
+// 起動時にまとめてキャッシュするファイル一覧。
 const PRECACHE_URLS = [
-  './',
+  './',                // index.html (ルート)
   './index.html',
   './css/style.css',
   './js/script.js',
@@ -17,7 +37,10 @@ const PRECACHE_URLS = [
   './icon-512.svg'
 ];
 
-// install: プリキャッシュ
+// ===== install: 初回起動時 =====
+// event.waitUntil(Promise) で「このPromiseが完了するまで install を待つ」。
+// caches.open() で名前付きキャッシュを取得 → addAll で一気にプリキャッシュ。
+// skipWaiting() で「すぐに有効化」(普通は前のSWが終了するまで待機する)。
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -26,7 +49,10 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// activate: 古いキャッシュを削除
+// ===== activate: 有効化時 =====
+// caches.keys() で「現在ブラウザに保存されているキャッシュ名の一覧」を取得。
+// CACHE_NAME と違う名前のものは古いバージョン → 全部削除する。
+// clients.claim() は「既に開いているタブにも即座にこのSWを適用する」指示。
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -39,44 +65,47 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// fetch: Cache First 戦略
+// ===== fetch: すべてのリソース取得を横取り =====
+// ブラウザが何かを取得しようとするたびにこの関数が呼ばれる。
+// event.respondWith(Promise) で「代わりにこれを返す」と指定。
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
-  // GET 以外はスルー（POST 等はキャッシュしない）
+  // GET以外 (POST, PUT 等) はキャッシュせずスルー。
   if (request.method !== 'GET') {
     return;
   }
 
-  // 同一オリジン以外（Google Fonts 等）はネットワーク優先＋失敗時キャッシュフォールバック
+  // 同一オリジン (= 自分のサイト) かどうか判定。
+  // Google Fonts などの外部リソースは別の扱いにする。
   const sameOrigin = new URL(request.url).origin === self.location.origin;
 
   if (!sameOrigin) {
+    // 外部 (CDN/Fonts): ネットワーク優先、失敗したらキャッシュ。
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // 成功したらキャッシュにも保存
-          const copy = response.clone();
+          const copy = response.clone();    // response は1回しか使えないので複製
           caches.open(CACHE_NAME).then((cache) => {
-            // opaque レスポンスもそのまま入れておく
             cache.put(request, copy).catch(() => {});
           });
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match(request))  // ネット失敗 → キャッシュから探す
     );
     return;
   }
 
-  // 同一オリジン: Cache First
+  // 同一オリジン: Cache First (まずキャッシュを見る → なければネット)
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) {
-        return cached;
+        return cached;                       // キャッシュあり → 即返す
       }
       return fetch(request)
         .then((response) => {
-          // 正常なレスポンスのみキャッシュに追加
+          // 正常なレスポンスならキャッシュに保存。
+          // basic = 同一オリジン、status 200 = 成功
           if (response && response.status === 200 && response.type === 'basic') {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -86,7 +115,8 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // ナビゲーション系のリクエストは index.html にフォールバック
+          // オフライン時のフォールバック。
+          // ページ遷移 (navigate) なら index.html を返してSPAっぽく振る舞う。
           if (request.mode === 'navigate') {
             return caches.match('./index.html');
           }

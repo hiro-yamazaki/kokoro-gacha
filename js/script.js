@@ -1,11 +1,22 @@
 // ========================================
-// こころのガチャ v3.1 - 習慣化フォーカス + プロ仕上げ
-// 時間帯テーマ / 気分リアクティブ / カスタムSVG / 数字カウントアップ / 粒子背景
+// こころのガチャ v4.0 - メインスクリプト
+// ========================================
+// 【全体の流れ】
+//   1. データ定義 (capsules / achievements)
+//   2. localStorage ラッパー関数 (lsGet / lsSet)
+//   3. ユーティリティ (日付・乱数など)
+//   4. サウンド (Web Audio API)
+//   5〜9. ガチャの状態管理 (カウント・コレクション・ストリーク・天井・デイリー・実績)
+//   10〜11. UI 更新 (画面の書き換え) と ガチャ実行
+//   12〜18. 図鑑・お気に入り・シェア・トースト・ビュー切替・モーダル
+//   19. 初期化 ($(function () { ... })) ← jQuery の DOMReady と同じ
 // ========================================
 
 // ========================================
 // 1. データ定義
 // ========================================
+// capsules はメッセージのデータベース。各要素はオブジェクト {キー: 値, ...}。
+// jsonに近い書き方。これを後で配列メソッド (filter, find, forEach) で操作する。
 
 const capsules = [
   // ===== SSR (2件 / 3%) =====
@@ -125,16 +136,26 @@ const capsules = [
   { id: 100, rarity: "N",  category: "ほっとする言葉",   message: "今日のあなたで、ちゃんと大丈夫です。",                     time: "any",      mood: "any" }
 ];
 
+// レア度別の出現確率 (合計100)。後で Math.random() で抽選する。
 const RARITY_RATES = { SSR: 3, SR: 12, R: 25, N: 60 };
+
+// レア度別の演出設定。 揺れの長さ・カードに付与するクラス名を切替える。
 const RARITY_EFFECTS = {
   N:   { shakeClass: "shake",     shakeDuration: 500,  cardClass: "" },
   R:   { shakeClass: "shake-r",   shakeDuration: 700,  cardClass: "card-r" },
   SR:  { shakeClass: "shake-sr",  shakeDuration: 1000, cardClass: "card-sr" },
   SSR: { shakeClass: "shake-ssr", shakeDuration: 1400, cardClass: "card-ssr" }
 };
+
+// 天井 (Pity) システム: ハズレが続いたら確定で当てる仕組み (ガチャの定番)。
+// SR以上が20回連続出ない → 21回目はSR以上確定
+// SSRが80回連続出ない → 81回目はSSR確定
 const PITY_SR_THRESHOLD = 20;
 const PITY_SSR_THRESHOLD = 80;
 
+// localStorage で使うキー名を一覧で定義。
+// 文字列をあちこちに書くと typo で壊れるので、定数化して KEYS.count のように使う。
+// "kg-" は kokoro-gacha の略 (他のアプリと混ざらないよう接頭辞をつけている)。
 const KEYS = {
   count: "kg-count", collected: "kg-collected", favorites: "kg-favorites",
   streakLast: "kg-streak-last", streakCount: "kg-streak-count", streakMax: "kg-streak-max",
@@ -144,22 +165,29 @@ const KEYS = {
   achievements: "kg-achievements",
   actionFlags:  "kg-action-flags",
   onboarded:    "kg-onboarded",
+  // v2 時代のキー (移行用、新しくは使わない)
   legacyCollected: "kokoro-gacha-collected", legacyCount: "kokoro-gacha-count"
 };
 
 // ========================================
 // 2. localStorage ラッパー
 // ========================================
+// localStorage は「文字列しか保存できない」制約がある。
+// 数字や配列も保存できるように、JSON.stringify で文字列化→保存、
+// 取り出す時に JSON.parse でオブジェクトに戻すラッパー関数を作る。
+// fallback は「保存されてなかった場合の初期値」。
 
 function lsGet(key, fallback) {
   try {
     const v = localStorage.getItem(key);
-    if (v === null) return fallback;
-    return JSON.parse(v);
-  } catch (e) { return fallback; }
+    if (v === null) return fallback;     // まだ保存されてない → 初期値を返す
+    return JSON.parse(v);                 // 文字列 → 元のオブジェクト/数字/配列に
+  } catch (e) { return fallback; }        // パース失敗時も初期値で安全に
 }
 function lsSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
+// v2 → v3 でキー名を変えたので、旧データを新しい構造にコピーする。
+// 一度だけ実行される (新キーが既にあれば何もしない)。
 function migrateLegacy() {
   if (lsGet(KEYS.collected, null) !== null) return;
   const legacyIds = lsGet(KEYS.legacyCollected, []);
@@ -177,6 +205,9 @@ function migrateLegacy() {
 // 3. ユーティリティ
 // ========================================
 
+// 今日の日付を "YYYY-MM-DD" 形式の文字列にして返す。
+// new Date() は現在時刻。getMonth() は 0=1月 なので +1 が必要。
+// padStart(2, "0") は「2桁になるまで頭に0を足す」(例: 5 → "05")。
 function todayStr() {
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -193,10 +224,15 @@ function getTimeOfDay() {
   if (h >= 17 && h < 22) return "evening";
   return "night";
 }
+// 日付文字列から「決まった乱数」を生成する関数。
+// 通常の Math.random() は毎回違う値だが、これは同じ日付なら必ず同じ値を返す。
+// → デイリーメッセージで「今日は全員これ」を実現するために使う。
+// 仕組み: 文字列の各文字を数値化してハッシュ計算 (簡易版)。
+// (h << 5) - h は h * 31 と同じ意味で、文字列ハッシュの定番テクニック。
 function dateSeededRandom(dateStr) {
   let h = 0;
   for (let i = 0; i < dateStr.length; i++) { h = ((h << 5) - h) + dateStr.charCodeAt(i); h |= 0; }
-  return Math.abs(h % 10000) / 10000;
+  return Math.abs(h % 10000) / 10000;  // 0〜1 の範囲に正規化
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
@@ -208,20 +244,33 @@ function icon(id, cls) {
   return '<svg class="' + (cls || 'icon') + '"><use href="#i-' + id + '"></use></svg>';
 }
 
-// 数字カウントアップアニメ
+// 数字をパッと変えるのではなく、カウントアップ・アニメーションで表示する関数。
+// from (現在の値) → to (目標値) を duration 秒かけて段階的に変化させる。
+//
+// 使うAPI:
+//   performance.now() = 高精度な現在時刻(ミリ秒)
+//   requestAnimationFrame(関数) = 次の画面描画タイミング(約16ms毎)に関数を呼ぶ
+//     setInterval よりカクつかず、画面更新と同期して滑らかに動く。
+//
+// eased = 1 - (1-progress)^3 はイージング関数 (ease-out cubic)。
+//   最初は速く、徐々に減速するアニメ動きになる。
 function animateCount(el, to, duration) {
   if (!el) return;
+  // 現在の値を取得 (data-value 属性 または テキスト)
   const from = parseInt(el.getAttribute("data-value") || el.textContent || "0", 10) || 0;
   if (from === to) { el.textContent = to; return; }
   duration = duration || 600;
   const start = performance.now();
+
+  // 毎フレーム呼ばれる関数
   const step = (now) => {
-    const progress = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const cur = Math.round(from + (to - from) * eased);
+    const progress = Math.min(1, (now - start) / duration);  // 0〜1 の進捗
+    const eased = 1 - Math.pow(1 - progress, 3);             // イージング適用
+    const cur = Math.round(from + (to - from) * eased);      // 線形補間で現在値
     el.textContent = cur;
-    if (progress < 1) requestAnimationFrame(step);
+    if (progress < 1) requestAnimationFrame(step);           // まだ続く → 次フレーム
     else {
+      // 終了処理: 最終値に固定 + 一瞬「tick」クラスで弾むアニメ
       el.textContent = to;
       el.setAttribute("data-value", to);
       el.classList.add("tick");
@@ -234,8 +283,18 @@ function animateCount(el, to, duration) {
 // ========================================
 // 4. サウンド (Web Audio API)
 // ========================================
+// 効果音ファイル (.mp3 など) を読み込まず、ブラウザの音響合成APIで
+// シンセサイザのように波形を生成して鳴らす。外部ファイル不要・軽量・オフラインOK。
+//
+// 仕組み:
+//   AudioContext = 音を作る土台
+//   OscillatorNode = 波形生成器 (sine=正弦波、triangle=三角波 など)
+//   GainNode = 音量調整 (エンベロープ = 音の立ち上がり〜減衰)
+//   connect でつなぐ: osc → gain → destination(スピーカー)
 
 let audioCtx = null;
+
+// AudioContext は最初の音再生時にユーザー操作後に作る (ブラウザの自動再生対策)。
 function getAudioCtx() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -243,21 +302,25 @@ function getAudioCtx() {
   }
   return audioCtx;
 }
+
+// 1音を鳴らす関数。
+// freq=周波数(Hz、440=ラ)、duration=長さ(秒)、type=波形、gain=音量
 function playTone(freq, duration, type, gain) {
-  if (!lsGet(KEYS.soundOn, true)) return;
+  if (!lsGet(KEYS.soundOn, true)) return;     // サウンドOFFなら何もしない
   const ctx = getAudioCtx();
   if (!ctx) return;
   try {
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = type || "sine";
-    osc.frequency.value = freq;
-    g.gain.value = gain || 0.15;
-    osc.connect(g);
-    g.connect(ctx.destination);
-    osc.start();
+    const osc = ctx.createOscillator();        // 波形生成器
+    const g = ctx.createGain();                // 音量ノブ
+    osc.type = type || "sine";                 // 波形種類
+    osc.frequency.value = freq;                // 周波数 = 音の高さ
+    g.gain.value = gain || 0.15;               // 初期音量 (0.15 = 15%)
+    osc.connect(g);                            // osc の音を gain に流す
+    g.connect(ctx.destination);                // gain の音をスピーカーに流す
+    osc.start();                               // 鳴らし始め
+    // gain を duration 秒かけて 0.001 まで指数的に下げる = フェードアウト
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.stop(ctx.currentTime + duration);
+    osc.stop(ctx.currentTime + duration);      // duration秒後に停止
   } catch (e) {}
 }
 const SE = {
@@ -321,36 +384,56 @@ function updateStreak() {
 function getStreak() { return lsGet(KEYS.streakCount, 0); }
 
 // ========================================
-// 7. 抽選
+// 7. 抽選 (ガチャの核心ロジック)
 // ========================================
 
+// ステップ1: レア度を決める。
+// Math.random() * 100 = 0〜100 のランダムな数。
+// 「3未満ならSSR、3〜15ならSR、15〜40ならR、40〜100ならN」と区分け。
+// 天井に達していたらレア度確定で返す。
 function pickRarity() {
   const pitySR = lsGet(KEYS.pitySR, 0);
   const pitySSR = lsGet(KEYS.pitySSR, 0);
-  if (pitySSR >= PITY_SSR_THRESHOLD) return "SSR";
-  if (pitySR >= PITY_SR_THRESHOLD) return Math.random() < 0.2 ? "SSR" : "SR";
+  if (pitySSR >= PITY_SSR_THRESHOLD) return "SSR";                       // 天井: SSR確定
+  if (pitySR >= PITY_SR_THRESHOLD) return Math.random() < 0.2 ? "SSR" : "SR"; // 天井: SR以上 (20%でSSR)
   const r = Math.random() * 100;
-  if (r < RARITY_RATES.SSR) return "SSR";
-  if (r < RARITY_RATES.SSR + RARITY_RATES.SR) return "SR";
-  if (r < RARITY_RATES.SSR + RARITY_RATES.SR + RARITY_RATES.R) return "R";
-  return "N";
+  if (r < RARITY_RATES.SSR) return "SSR";                                // 0〜3
+  if (r < RARITY_RATES.SSR + RARITY_RATES.SR) return "SR";               // 3〜15
+  if (r < RARITY_RATES.SSR + RARITY_RATES.SR + RARITY_RATES.R) return "R"; // 15〜40
+  return "N";                                                            // 40〜100
 }
+
+// ステップ2: 決まったレア度の中から、気分・時間帯に合うメッセージを選ぶ。
+// filter で同レア度だけを抽出 → 各メッセージに「重み」を付けて加重抽選。
+// 気分マッチ +2、時間帯マッチ +1。マッチが多いほど選ばれやすい。
 function pickCapsule(currentMood) {
   const rarity = pickRarity();
-  const pool = capsules.filter(c => c.rarity === rarity);
+  const pool = capsules.filter(c => c.rarity === rarity);     // 同レア度だけ抜き出す
   if (pool.length === 0) return capsules[0];
   const time = getTimeOfDay();
+
+  // 重みを計算: map で配列の各要素を別の値に変換
   const weights = pool.map(c => {
-    let w = 1;
+    let w = 1;                                                 // 基本の重み
     if (c.mood === currentMood && currentMood && currentMood !== "any") w += 2;
     if (c.time === time) w += 1;
     return w;
   });
+
+  // 重みの合計を出す (reduce: 配列を畳み込んで1つの値にする)
   const total = weights.reduce((a, b) => a + b, 0);
+
+  // 0〜totalのランダムな数を取り、重みを順に引いていく。
+  // 0未満になった所が当たり (重みが大きい要素ほど引かれやすい)。
   let r = Math.random() * total;
   for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r < 0) return pool[i]; }
   return pool[pool.length - 1];
 }
+
+// ガチャ後に天井カウンタを更新する。
+// SSRが出た → 両方リセット
+// SRが出た → SRカウンタはリセット、SSRカウンタは +1
+// それ以外 (R/N) → 両方 +1
 function updatePityAfter(rarity) {
   let pitySR = lsGet(KEYS.pitySR, 0);
   let pitySSR = lsGet(KEYS.pitySSR, 0);
@@ -743,9 +826,18 @@ function refreshParticles() {
 }
 
 // ========================================
-// 12. ガチャ実行
+// 12. ガチャ実行 (一連の流れの「演出」を司る関数)
 // ========================================
+// 流れ:
+//   1. ボタンを無効化 (連打防止)
+//   2. ストリーク・カウント更新 + 数字アニメ
+//   3. 抽選 → 結果のレア度に応じた演出選択
+//   4. ガチャマシン揺れ + サウンド
+//   5. SSRなら全画面エフェクト
+//   6. shake終了後に結果カードを更新 (showResult)
+//   7. 一定時間後にボタン再有効化
 
+// カテゴリ → CSSクラスのマップ。カプセル色の切替えに使う。
 const categoryClassMap = {
   "ほっとする言葉": "cat-relax",
   "小さなアドバイス": "cat-advice",
@@ -753,13 +845,13 @@ const categoryClassMap = {
   "自分を整える一言": "cat-balance"
 };
 
-let currentMood = "calm";
-let currentResultId = null;
+let currentMood = "calm";       // 現在選択中の気分 (ガチャ時の重み計算に使う)
+let currentResultId = null;     // 直前の結果のID (お気に入り/シェアで使う)
 
 function runGacha() {
   const $button = $("#gacha-button");
-  if ($button.prop("disabled")) return;
-  $button.prop("disabled", true);
+  if ($button.prop("disabled")) return;     // すでに処理中なら何もしない
+  $button.prop("disabled", true);            // ボタン無効化
 
   // ストリーク更新
   const streakResult = updateStreak();
@@ -938,13 +1030,18 @@ function renderFavorites() {
 }
 
 // ========================================
-// 15. シェア画像生成
+// 15. シェア画像生成 (Canvas API)
 // ========================================
+// HTML の <canvas> 要素は「JavaScriptで絵を描けるキャンバス」。
+//   ctx = キャンバスへの描画コマンドを発行する「ペン」のようなもの
+//   ctx.fillRect / ctx.fillText / ctx.createLinearGradient などで描画
+//   canvas.toDataURL("image/png") で「現在のキャンバス内容を画像のURLとして取得」
+//     → これをダウンロードリンクに渡せばユーザーが保存できる。
 
 function generateShareImage(capsule) {
   const canvas = document.getElementById("share-canvas");
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext("2d");          // 2D描画コンテキストを取得
+  const W = canvas.width, H = canvas.height;    // キャンバスのサイズ
 
   const bg = ctx.createLinearGradient(0, 0, W, H);
   if (capsule.rarity === "SSR") { bg.addColorStop(0, "#fff8e1"); bg.addColorStop(1, "#ffe4a3"); }
@@ -982,6 +1079,9 @@ function generateShareImage(capsule) {
 
   return canvas.toDataURL("image/png");
 }
+// Canvas には自動の改行機能がないので、自前で文字幅を測って折り返す。
+// ctx.measureText(文字列).width で「その文字列を描画したときの幅(px)」が取れる。
+// 1文字ずつ足していき、maxWidth を超えたらそこで改行 (lines に push)。
 function wrapText(ctx, text, maxWidth) {
   const chars = text.split("");
   const lines = []; let cur = "";
@@ -1029,14 +1129,23 @@ function openModal(id) { $("#" + id).addClass("active").attr("aria-hidden", "fal
 function closeModal(id) { $("#" + id).removeClass("active").attr("aria-hidden", "true"); }
 
 // ========================================
-// 19. 初期化
+// 19. 初期化 ($(function () { ... }))
 // ========================================
+// jQuery の $(function () { ... }) は「ページのHTMLが読み込み終わったら実行」。
+// イベントハンドラ ($(...).on("click", ...) など) は要素が存在してから登録するため、
+// 必ずこの中に書く。 ※プレーンJSの DOMContentLoaded と同じ意味。
+//
+// この中でやること:
+//   - 既存データの移行 (migrateLegacy)
+//   - 初期表示の更新 (回数・ストリーク・図鑑など)
+//   - すべてのクリックイベントの登録
+//   - 実績システム・オンボーディングの起動
 
 $(function () {
   migrateLegacy();
   currentMood = "calm";
-  applyTimeTheme();
-  applyMood("calm");
+  applyTimeTheme();          // 時間帯に応じて body[data-time] を切替え
+  applyMood("calm");         // 気分の初期値を反映
 
   // 1分ごとに時間帯チェック (時間境界で切替えるため)
   setInterval(applyTimeTheme, 60000);

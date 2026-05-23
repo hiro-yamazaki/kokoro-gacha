@@ -1,15 +1,36 @@
+<!--
+  こころのガチャ v4.0 - index.html
+  =====================================================
+  【構成】
+  1. <head> ... メタ情報、フォント、CSS、PWA設定
+  2. SVGアイコン定義 (<svg style="display:none">)
+     ... 全ページで使うアイコンを一箇所に定義。<use href="#i-xxx"> で参照。
+  3. アンビエント背景 (粒子アニメの入れ物)
+  4. .app ... メインのアプリ本体 (max-width 480px、モバイルファースト)
+  5. <nav class="app-nav"> ... 画面下部の4タブ
+  6. モーダル群 (設定/カード詳細/シェア)
+  7. 演出要素 (SSRオーバーレイ/トースト/実績フラッシュ)
+  8. オンボーディング (初回起動時のチュートリアル)
+  9. <script> ... jQuery → script.js → Service Worker 登録
+-->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- viewport: モバイルで「100%幅・拡大なし」で表示する指定 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <!-- theme-color: モバイルでアドレスバーの色をこの色に -->
   <meta name="theme-color" content="#f4f3f0">
   <title>こころのガチャ</title>
+  <!-- preconnect: フォントCDNと先に接続を確立しておくと読み込みが速くなる -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- ?v=4.0.1 は CDN キャッシュをバイパスするためのバージョンクエリ -->
   <link rel="stylesheet" href="css/style.css?v=4.0.1">
 
-  <!-- PWA -->
+  <!-- ===== PWA (Progressive Web App) =====
+       manifest.json でアプリ名・アイコン・起動方法を定義。
+       これがあるとブラウザが「ホーム画面に追加」を勧めてくれるようになる。 -->
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icon-192.svg">
   <link rel="icon" type="image/svg+xml" href="./icon-192.svg">
@@ -21,7 +42,11 @@
 </head>
 <body data-time="afternoon" data-mood="calm">
 
-  <!-- ===== SVG アイコン定義 ===== -->
+  <!-- ===== SVG アイコン定義 =====
+       <symbol> でアイコンの図形を定義 → 後で <use href="#i-flame"> で呼び出す。
+       同じアイコンを複数箇所で使い回せて、SVGデータがHTMLを膨らませない。
+       <defs> 内の要素は直接は表示されない (隠して保持)。
+  -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <symbol id="i-flame" viewBox="0 0 24 24">
@@ -177,7 +202,8 @@
 
   <div class="app">
 
-    <!-- ===== アプリヘッダー ===== -->
+    <!-- ===== アプリヘッダー (sticky で画面上部に固定) =====
+         左: 連続日数バッジ / 中央: タイトル / 右: 設定ボタン -->
     <header class="app-header">
       <div class="streak-badge" id="streak-badge" title="連続日数">
         <svg class="icon"><use href="#i-flame"></use></svg>
@@ -321,7 +347,9 @@
 
     </main>
 
-    <!-- ===== ボトムナビゲーション ===== -->
+    <!-- ===== ボトムナビゲーション (画面下に固定、4タブ) =====
+         data-view 属性でどのビューを表示するか指定。
+         JS側で .nav-btn のクリック → switchView() で切替え。 -->
     <nav class="app-nav">
       <button class="nav-btn active" data-view="today" type="button">
         <svg class="nav-icon"><use href="#i-capsule"></use></svg>
@@ -518,8 +546,15 @@
     </div>
   </div>
 
+  <!-- jQuery を CDN から読み込み (グローバル変数 $ を提供) -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <!-- 自作スクリプトは jQuery より後でないと $ が使えない -->
   <script src="js/script.js"></script>
+
+  <!-- ===== Service Worker 登録 =====
+       'serviceWorker' in navigator で「ブラウザがSWに対応してるか」確認。
+       window load 後に register することで、メインアプリの起動を邪魔しない。
+       scope: './' で「このディレクトリ配下のみ制御」を明示。 -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
