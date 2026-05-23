@@ -2,62 +2,217 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#f4f3f0">
   <title>こころのガチャ</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!--
-    課題説明（レベルアップ版）：
-    既存のクリック→ランダム表示→DOM操作→カウント処理 をベースに、
-    「レアリティシステム（N/R/SR/SSR の重み付き抽選）」と
-    「コレクション機能（localStorage 保存）」を追加した。
-    レア度に応じた派手な演出（揺れの強化・オーラ・全画面キラキラ）を実装。
-  -->
 
   <div class="app">
 
-    <!-- タイトル -->
-    <header class="header">
-      <h1 class="title">こころのガチャ</h1>
-      <p class="subtitle">回すたびに、少しだけ気持ちが軽くなる。</p>
+    <!-- ===== アプリヘッダー ===== -->
+    <header class="app-header">
+      <div class="streak-badge" id="streak-badge" title="連続日数">
+        <span class="streak-icon">🔥</span>
+        <span id="streak-count" class="streak-count">0</span>
+      </div>
+      <h1 class="app-title">こころのガチャ</h1>
+      <button id="settings-btn" class="icon-btn" type="button" aria-label="設定">
+        <span aria-hidden="true">⚙</span>
+      </button>
     </header>
 
-    <!-- ガチャマシーン本体 -->
-    <div id="gacha-machine" class="gacha-machine">
-      <img src="img/gacha.png" alt="ガチャマシーン" class="gacha-image"
-           onerror="this.style.display='none'; document.getElementById('gacha-fallback').style.display='flex';">
-      <div id="gacha-fallback" class="gacha-fallback">🎰</div>
-      <!-- レア度に応じて点灯するオーラ -->
-      <div class="machine-aura"></div>
-    </div>
+    <!-- ===== メインコンテンツ ===== -->
+    <main class="app-main">
 
-    <!-- ガチャを回すボタン -->
-    <button id="gacha-button" class="gacha-button" type="button">ガチャを回す</button>
+      <!-- ============ 今日タブ ============ -->
+      <section id="view-today" class="view view-today active">
 
-    <!-- 結果表示エリア（カード風） -->
-    <div id="result-card" class="result-card">
-      <div class="result-header">
-        <span id="new-badge" class="new-badge">NEW!</span>
-      </div>
-      <div class="capsule-icon"></div>
-      <p id="category" class="category">今日のカプセル</p>
-      <p id="message" class="message">ボタンを押すと、言葉が出てきます。</p>
-    </div>
+        <!-- 今日のひとこと (1日1回) -->
+        <div id="daily-card" class="daily-card">
+          <div class="daily-header">
+            <span class="daily-label">今日のひとこと</span>
+            <span id="daily-date" class="daily-date">--</span>
+          </div>
+          <div id="daily-content" class="daily-content daily-locked">
+            <span class="daily-lock-icon">🎁</span>
+            <p class="daily-prompt">タップして今日の言葉を開く</p>
+          </div>
+        </div>
 
-    <!-- ステータス（回数・コレクション・リセット） -->
-    <div class="status-area">
-      <p id="count-text" class="count-text">回した回数：0回</p>
-      <p id="collection-text" class="collection-text">コレクション：0 / 12</p>
-      <div class="progress-bar">
-        <div id="progress-fill" class="progress-fill"></div>
-      </div>
-      <button id="reset-button" class="reset-button" type="button">コレクションをリセット</button>
-    </div>
+        <!-- 気分セレクター -->
+        <div class="mood-selector">
+          <p class="mood-question">いまの気分は？</p>
+          <div class="mood-options" role="radiogroup">
+            <button class="mood-btn" data-mood="anxious" type="button">
+              <span class="mood-emoji">☁️</span>
+              <span class="mood-label">不安</span>
+            </button>
+            <button class="mood-btn" data-mood="tired" type="button">
+              <span class="mood-emoji">🌧</span>
+              <span class="mood-label">疲れ</span>
+            </button>
+            <button class="mood-btn active" data-mood="calm" type="button">
+              <span class="mood-emoji">🌿</span>
+              <span class="mood-label">穏やか</span>
+            </button>
+            <button class="mood-btn" data-mood="motivated" type="button">
+              <span class="mood-emoji">🔥</span>
+              <span class="mood-label">燃えてる</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ガチャマシーン -->
+        <div id="gacha-machine" class="gacha-machine">
+          <img src="img/gacha.png" alt="ガチャマシーン" class="gacha-image"
+               onerror="this.style.display='none'; document.getElementById('gacha-fallback').style.display='flex';">
+          <div id="gacha-fallback" class="gacha-fallback">🎰</div>
+          <div class="machine-aura"></div>
+          <div id="confirmation-glow" class="confirmation-glow"></div>
+        </div>
+
+        <button id="gacha-button" class="gacha-button" type="button">ガチャを回す</button>
+        <p id="pity-text" class="pity-text"></p>
+
+        <!-- 結果カード -->
+        <div id="result-card" class="result-card result-empty">
+          <div class="result-header">
+            <span id="new-badge" class="new-badge">NEW!</span>
+            <button id="favorite-btn" class="favorite-btn" type="button" aria-label="お気に入り" aria-pressed="false">
+              <span aria-hidden="true">♡</span>
+            </button>
+          </div>
+          <div class="capsule-icon"></div>
+          <p id="category" class="category">今日のカプセル</p>
+          <p id="message" class="message">ボタンを押すと、言葉が出てきます。</p>
+          <div class="result-actions">
+            <button id="share-btn" class="share-btn" type="button" disabled>📤 シェア</button>
+          </div>
+        </div>
+
+        <!-- 統計エリア -->
+        <div class="status-area">
+          <p id="count-text" class="count-text">回した回数：0回</p>
+          <p id="collection-text" class="collection-text">コレクション：0 / 40</p>
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 図鑑タブ ============ -->
+      <section id="view-collection" class="view view-collection">
+        <div class="section-header">
+          <h2 class="section-title">こころの図鑑</h2>
+          <p class="section-sub"><span id="coll-num">0</span> / 40 種類取得</p>
+        </div>
+        <div class="collection-filters">
+          <button class="filter-btn active" data-filter="all" type="button">すべて</button>
+          <button class="filter-btn" data-filter="SSR" type="button">SSR</button>
+          <button class="filter-btn" data-filter="SR" type="button">SR</button>
+          <button class="filter-btn" data-filter="R" type="button">R</button>
+          <button class="filter-btn" data-filter="N" type="button">N</button>
+        </div>
+        <div id="collection-grid" class="collection-grid"></div>
+      </section>
+
+      <!-- ============ マイカードタブ ============ -->
+      <section id="view-favorites" class="view view-favorites">
+        <div class="section-header">
+          <h2 class="section-title">マイカード</h2>
+          <p class="section-sub"><span id="fav-num">0</span> 件保存中</p>
+        </div>
+        <div id="favorites-list" class="favorites-list"></div>
+        <p id="favorites-empty" class="favorites-empty">
+          まだお気に入りはありません。<br>
+          気に入ったメッセージに <span class="heart">♡</span> をタップして保存できます。
+        </p>
+      </section>
+
+    </main>
+
+    <!-- ===== ボトムナビゲーション ===== -->
+    <nav class="app-nav">
+      <button class="nav-btn active" data-view="today" type="button">
+        <span class="nav-icon">🎰</span>
+        <span class="nav-label">今日</span>
+      </button>
+      <button class="nav-btn" data-view="collection" type="button">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">図鑑</span>
+        <span id="nav-collection-dot" class="nav-dot"></span>
+      </button>
+      <button class="nav-btn" data-view="favorites" type="button">
+        <span class="nav-icon">♡</span>
+        <span class="nav-label">マイカード</span>
+      </button>
+    </nav>
 
   </div>
 
-  <!-- SSR専用：全画面キラキラエフェクト -->
+  <!-- ===== 設定モーダル ===== -->
+  <div id="settings-modal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="settings-modal"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">設定</h2>
+        <button class="modal-close" data-close="settings-modal" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <span class="setting-label">サウンド</span>
+          <label class="toggle">
+            <input type="checkbox" id="sound-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">ガチャ総回数</span>
+          <span id="settings-count" class="setting-value">0</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">連続日数</span>
+          <span id="settings-streak" class="setting-value">0 日</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">最長記録</span>
+          <span id="settings-max-streak" class="setting-value">0 日</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">天井までの残り</span>
+          <span id="settings-pity" class="setting-value">--</span>
+        </div>
+        <button id="reset-btn" class="danger-btn" type="button">すべてのデータをリセット</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== カード詳細モーダル ===== -->
+  <div id="card-detail-modal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="card-detail-modal"></div>
+    <div class="modal-content card-detail-content">
+      <button class="modal-close" data-close="card-detail-modal" type="button" aria-label="閉じる">×</button>
+      <div id="card-detail-body" class="card-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== シェア画像生成モーダル ===== -->
+  <div id="share-modal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="share-modal"></div>
+    <div class="modal-content share-content">
+      <button class="modal-close" data-close="share-modal" type="button" aria-label="閉じる">×</button>
+      <h2 class="modal-title">シェア</h2>
+      <canvas id="share-canvas" width="600" height="600"></canvas>
+      <div class="share-actions">
+        <a id="share-download" class="share-action-btn" download="kokoro-gacha.png">画像をダウンロード</a>
+        <button id="share-copy" class="share-action-btn" type="button">テキストをコピー</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SSR全画面オーバーレイ ===== -->
   <div id="ssr-overlay" class="ssr-overlay" aria-hidden="true">
     <div class="ssr-flash"></div>
     <div class="sparkles">
@@ -67,9 +222,10 @@
     </div>
   </div>
 
-  <!-- jQuery を CDN から読み込み -->
+  <!-- ===== トースト通知 ===== -->
+  <div id="toast" class="toast"></div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <!-- 自作のスクリプトは jQuery より後に読み込む -->
   <script src="js/script.js"></script>
 </body>
 </html>
