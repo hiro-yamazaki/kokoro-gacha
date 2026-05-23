@@ -1794,8 +1794,8 @@ body[data-time="night"] .ach-card.unlocked .ach-card-icon {
 
 .onb-steps {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 480px;
   overflow: hidden;
 }
 
@@ -2026,6 +2026,7 @@ body[data-time="night"] .onb-next { color: #1a1a1a; }
 body[data-time="night"] .onb-dot.active { background: var(--text); }
 
 @media (max-height: 640px) {
+  .onb-steps { min-height: 420px; }
   .onb-art { width: 132px; height: 132px; margin-bottom: 16px; }
   .onb-art-icon { width: 62px; height: 62px; }
   .onb-art-3 .onb-art-book { width: 52px; height: 52px; }
