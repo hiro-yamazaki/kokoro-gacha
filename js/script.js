@@ -54,7 +54,75 @@ const capsules = [
   { id: 37, rarity: "N",   category: "ほっとする言葉",   message: "笑顔の練習だけでも、心がちょっと軽くなります。",       time: "morning",  mood: "motivated" },
   { id: 38, rarity: "N",   category: "ほっとする言葉",   message: "「だいじょうぶ」と心の中で3回唱えて。",                 time: "any",      mood: "anxious" },
   { id: 39, rarity: "N",   category: "小さなアドバイス", message: "一駅手前で降りて歩いてみる、それも休息です。",         time: "afternoon",mood: "motivated" },
-  { id: 40, rarity: "N",   category: "小さなアドバイス", message: "好きな音楽を一曲、目を閉じて聴く。",                   time: "any",      mood: "tired" }
+  { id: 40, rarity: "N",   category: "小さなアドバイス", message: "好きな音楽を一曲、目を閉じて聴く。",                   time: "any",      mood: "tired" },
+
+  // ===== SSR 追加 (3件 → 累計5件) =====
+  { id: 41, rarity: "SSR", category: "ほっとする言葉",   message: "頑張れなかった日も、あなたの価値は少しも減りません。",     time: "any",      mood: "tired" },
+  { id: 42, rarity: "SSR", category: "短い格言",         message: "壊れずにここまで来た、それ自体がもう奇跡です。",           time: "any",      mood: "anxious" },
+  { id: 43, rarity: "SSR", category: "自分を整える一言", message: "あなたの存在が、もう誰かにとっての灯りになっています。",   time: "evening",  mood: "calm" },
+
+  // ===== SR 追加 (9件 → 累計15件) =====
+  { id: 44, rarity: "SR",  category: "短い格言",         message: "ゆっくり咲く花も、ちゃんと美しく咲きます。",               time: "any",      mood: "motivated" },
+  { id: 45, rarity: "SR",  category: "ほっとする言葉",   message: "言葉にできない気持ちにも、ちゃんと意味があります。",       time: "any",      mood: "anxious" },
+  { id: 46, rarity: "SR",  category: "短い格言",         message: "迷っている時間は、無駄ではなく、選び直している時間です。", time: "any",      mood: "anxious" },
+  { id: 47, rarity: "SR",  category: "自分を整える一言", message: "誰かに優しくする前に、まず自分に優しくしていい。",         time: "morning",  mood: "calm" },
+  { id: 48, rarity: "SR",  category: "短い格言",         message: "傷ついた経験は、優しさに変わる種になります。",             time: "night",    mood: "calm" },
+  { id: 49, rarity: "SR",  category: "ほっとする言葉",   message: "うまく眠れない夜も、休もうとしているだけで十分です。",     time: "night",    mood: "anxious" },
+  { id: 50, rarity: "SR",  category: "短い格言",         message: "頑張らない勇気も、立派な選択です。",                       time: "any",      mood: "tired" },
+  { id: 51, rarity: "SR",  category: "自分を整える一言", message: "心がざわつく日は、何も決めないことを決めていい。",         time: "any",      mood: "anxious" },
+  { id: 52, rarity: "SR",  category: "ほっとする言葉",   message: "今日のあなたを、ちゃんと労ってあげてください。",           time: "evening",  mood: "tired" },
+
+  // ===== R 追加 (18件 → 累計30件) =====
+  { id: 53, rarity: "R",   category: "自分を整える一言", message: "怖くなったら、足の裏が床についているのを感じてみて。",     time: "any",      mood: "anxious" },
+  { id: 54, rarity: "R",   category: "短い格言",         message: "「できた」より「やってみた」を数えていい。",               time: "any",      mood: "motivated" },
+  { id: 55, rarity: "R",   category: "自分を整える一言", message: "誰にも会いたくない日は、自分とだけ過ごしていい。",         time: "any",      mood: "tired" },
+  { id: 56, rarity: "R",   category: "短い格言",         message: "雨の日があるから、晴れた日が嬉しくなる。",                 time: "any",      mood: "calm" },
+  { id: 57, rarity: "R",   category: "自分を整える一言", message: "嫌な気持ちは、抱きしめて受け止めれば小さくなります。",     time: "any",      mood: "anxious" },
+  { id: 58, rarity: "R",   category: "短い格言",         message: "進めない日は、内側で育っている時間です。",                 time: "any",      mood: "tired" },
+  { id: 59, rarity: "R",   category: "自分を整える一言", message: "朝起きられただけで、今日のノルマは半分終わっています。",   time: "morning",  mood: "tired" },
+  { id: 60, rarity: "R",   category: "短い格言",         message: "答えが出ない問いは、急いで閉じなくていい。",               time: "any",      mood: "anxious" },
+  { id: 61, rarity: "R",   category: "自分を整える一言", message: "心配事の9割は、起こらないことだそうです。",                 time: "any",      mood: "anxious" },
+  { id: 62, rarity: "R",   category: "短い格言",         message: "穏やかさは、強さの別の名前です。",                         time: "any",      mood: "calm" },
+  { id: 63, rarity: "R",   category: "自分を整える一言", message: "夜更かしより、ひと眠りの方が問題を小さくします。",         time: "night",    mood: "tired" },
+  { id: 64, rarity: "R",   category: "短い格言",         message: "断ることは、自分の時間を大切にすることです。",             time: "any",      mood: "motivated" },
+  { id: 65, rarity: "R",   category: "自分を整える一言", message: "誰かの期待より、自分の機嫌を先に整えていい。",             time: "morning",  mood: "motivated" },
+  { id: 66, rarity: "R",   category: "短い格言",         message: "失敗は、次にやさしくなるための練習です。",                 time: "any",      mood: "motivated" },
+  { id: 67, rarity: "R",   category: "自分を整える一言", message: "焦った時ほど、3秒だけゆっくり息を吐いてみて。",           time: "any",      mood: "anxious" },
+  { id: 68, rarity: "R",   category: "短い格言",         message: "頑張りすぎないことが、長く続けるコツです。",               time: "any",      mood: "motivated" },
+  { id: 69, rarity: "R",   category: "ほっとする言葉",   message: "今日もどこかで、あなたのことを想っている人がいます。",     time: "evening",  mood: "calm" },
+  { id: 70, rarity: "R",   category: "自分を整える一言", message: "予定を詰めない日を、ご褒美にしてみましょう。",             time: "any",      mood: "tired" },
+
+  // ===== N 追加 (30件 → 累計50件) =====
+  { id: 71, rarity: "N",   category: "小さなアドバイス", message: "両手を、ゆっくりグーパーしてみましょう。",                 time: "any",      mood: "anxious" },
+  { id: 72, rarity: "N",   category: "小さなアドバイス", message: "首をゆっくり、右に左に倒してみて。",                       time: "afternoon",mood: "tired" },
+  { id: 73, rarity: "N",   category: "ほっとする言葉",   message: "ベッドの中で、もう少しだけぼーっとしていい。",             time: "morning",  mood: "tired" },
+  { id: 74, rarity: "N",   category: "小さなアドバイス", message: "白湯を一杯、ゆっくり飲んでみましょう。",                   time: "morning",  mood: "calm" },
+  { id: 75, rarity: "N",   category: "小さなアドバイス", message: "机の上を、ひとつだけ片づけてみる。",                       time: "afternoon",mood: "motivated" },
+  { id: 76, rarity: "N",   category: "ほっとする言葉",   message: "返信は、明日でも全然間に合います。",                       time: "night",    mood: "tired" },
+  { id: 77, rarity: "N",   category: "小さなアドバイス", message: "窓を少し開けて、空気を入れ替えてみましょう。",             time: "morning",  mood: "calm" },
+  { id: 78, rarity: "N",   category: "小さなアドバイス", message: "靴下を脱いで、足首をくるくる回してみて。",                 time: "evening",  mood: "tired" },
+  { id: 79, rarity: "N",   category: "ほっとする言葉",   message: "「疲れた」と口に出してみる。それで少し軽くなります。",     time: "any",      mood: "tired" },
+  { id: 80, rarity: "N",   category: "小さなアドバイス", message: "目を温めて、画面の疲れを流しましょう。",                   time: "night",    mood: "tired" },
+  { id: 81, rarity: "N",   category: "小さなアドバイス", message: "好きな香りを、ひと嗅ぎしてみる。",                         time: "any",      mood: "calm" },
+  { id: 82, rarity: "N",   category: "ほっとする言葉",   message: "今日も無事に夜を迎えられたら、それで合格です。",           time: "night",    mood: "calm" },
+  { id: 83, rarity: "N",   category: "小さなアドバイス", message: "明日の服を、今のうちに決めておくと楽になります。",         time: "evening",  mood: "motivated" },
+  { id: 84, rarity: "N",   category: "小さなアドバイス", message: "通知をオフにして、5分だけ静けさをつくる。",                 time: "any",      mood: "anxious" },
+  { id: 85, rarity: "N",   category: "ほっとする言葉",   message: "甘いものを少し。それも立派な栄養補給です。",               time: "afternoon",mood: "tired" },
+  { id: 86, rarity: "N",   category: "小さなアドバイス", message: "背伸びをひとつ。それだけで気持ちが切り替わります。",       time: "morning",  mood: "motivated" },
+  { id: 87, rarity: "N",   category: "小さなアドバイス", message: "コップ一杯の水を、ゆっくり飲んでみて。",                   time: "afternoon",mood: "anxious" },
+  { id: 88, rarity: "N",   category: "ほっとする言葉",   message: "誰にも言えない気持ちは、紙に書いてみていい。",             time: "night",    mood: "anxious" },
+  { id: 89, rarity: "N",   category: "小さなアドバイス", message: "立ち上がって、その場で軽く伸びをしてみましょう。",         time: "afternoon",mood: "tired" },
+  { id: 90, rarity: "N",   category: "小さなアドバイス", message: "湯気のたつ飲み物を、両手で包んでみて。",                   time: "evening",  mood: "calm" },
+  { id: 91, rarity: "N",   category: "ほっとする言葉",   message: "がんばらない日が、明日のがんばりを作ります。",             time: "any",      mood: "tired" },
+  { id: 92, rarity: "N",   category: "小さなアドバイス", message: "肩を耳に近づけて、ストンと落としてみる。",                 time: "any",      mood: "anxious" },
+  { id: 93, rarity: "N",   category: "小さなアドバイス", message: "ToDoをひとつだけ消す。それで十分前進です。",               time: "morning",  mood: "motivated" },
+  { id: 94, rarity: "N",   category: "ほっとする言葉",   message: "「今日はもう終わり」と、自分に言ってあげていい。",         time: "night",    mood: "tired" },
+  { id: 95, rarity: "N",   category: "小さなアドバイス", message: "電気を少し暗くして、目を休めてみましょう。",               time: "night",    mood: "calm" },
+  { id: 96, rarity: "N",   category: "小さなアドバイス", message: "手を洗って、気分もリセットしてみて。",                     time: "any",      mood: "anxious" },
+  { id: 97, rarity: "N",   category: "ほっとする言葉",   message: "ぼんやりする時間は、心の充電時間です。",                   time: "afternoon",mood: "tired" },
+  { id: 98, rarity: "N",   category: "小さなアドバイス", message: "外の音に、しばらく耳を澄ませてみましょう。",               time: "morning",  mood: "calm" },
+  { id: 99, rarity: "N",   category: "小さなアドバイス", message: "深呼吸を1回。吸うより、吐くを長めに。",                     time: "any",      mood: "anxious" },
+  { id: 100, rarity: "N",  category: "ほっとする言葉",   message: "今日のあなたで、ちゃんと大丈夫です。",                     time: "any",      mood: "any" }
 ];
 
 const RARITY_RATES = { SSR: 3, SR: 12, R: 25, N: 60 };
@@ -73,6 +141,9 @@ const KEYS = {
   pitySR: "kg-pity-sr", pitySSR: "kg-pity-ssr",
   dailyDate: "kg-daily-date", dailyOpenId: "kg-daily-open-id",
   soundOn: "kg-sound-on",
+  achievements: "kg-achievements",
+  actionFlags:  "kg-action-flags",
+  onboarded:    "kg-onboarded",
   legacyCollected: "kokoro-gacha-collected", legacyCount: "kokoro-gacha-count"
 };
 
@@ -216,8 +287,13 @@ function isFavorite(id) { return getFavorites().indexOf(id) !== -1; }
 function toggleFavorite(id) {
   const favs = getFavorites();
   const idx = favs.indexOf(id);
-  if (idx === -1) { favs.push(id); setFavorites(favs); SE.fav(); return true; }
-  favs.splice(idx, 1); setFavorites(favs); SE.unfav(); return false;
+  if (idx === -1) {
+    favs.push(id); setFavorites(favs); SE.fav();
+    checkAchievements();
+    return true;
+  }
+  favs.splice(idx, 1); setFavorites(favs); SE.unfav();
+  return false;
 }
 
 // ========================================
@@ -307,6 +383,9 @@ function openDaily() {
   lsSet(KEYS.dailyDate, todayStr());
   lsSet(KEYS.dailyOpenId, cap.id);
   addToCollection(cap.id);
+  recordMoodTried(currentMood);
+  recordTimeTried(getTimeOfDay());
+  checkAchievements();
   return cap;
 }
 
@@ -321,6 +400,239 @@ function addToCollection(id) {
   c[id].lastAt = now; setCollected(c); return false;
 }
 function getCollectedCount() { return Object.keys(getCollected()).length; }
+
+// ========================================
+// 9-b. 実績システム
+// ========================================
+
+const achievements = [
+  // ===== 継続 =====
+  { id: "streak-3",   category: "continuity", icon: "i-flame",
+    name: "三日坊主にならず",        description: "3日連続でガチャを引く",
+    target: 3,  progress: () => Math.min(getStreak(), 3),
+    condition: () => getStreak() >= 3 },
+  { id: "streak-7",   category: "continuity", icon: "i-flame",
+    name: "ひと週間の灯火",          description: "7日連続でガチャを引く",
+    target: 7,  progress: () => Math.min(getStreak(), 7),
+    condition: () => getStreak() >= 7 },
+  { id: "streak-30",  category: "continuity", icon: "i-flame",
+    name: "ひと月の習慣",            description: "30日連続でガチャを引く",
+    target: 30, progress: () => Math.min(getStreak(), 30),
+    condition: () => getStreak() >= 30 },
+
+  // ===== レア度 =====
+  { id: "first-r",    category: "rarity", icon: "i-sparkle",
+    name: "緑のしずく",              description: "はじめて R を引く",
+    target: 1, progress: () => hasRarityCollected("R") ? 1 : 0,
+    condition: () => hasRarityCollected("R") },
+  { id: "first-sr",   category: "rarity", icon: "i-sparkle",
+    name: "紫のときめき",            description: "はじめて SR を引く",
+    target: 1, progress: () => hasRarityCollected("SR") ? 1 : 0,
+    condition: () => hasRarityCollected("SR") },
+  { id: "first-ssr",  category: "rarity", icon: "i-trophy",
+    name: "黄金の出会い",            description: "はじめて SSR を引く",
+    target: 1, progress: () => hasRarityCollected("SSR") ? 1 : 0,
+    condition: () => hasRarityCollected("SSR") },
+
+  // ===== コレクション =====
+  { id: "coll-25",    category: "collection", icon: "i-book",
+    name: "図鑑のはじまり",          description: "図鑑を 25% 集める",
+    target: Math.ceil(100 * 0.25),
+    progress: () => Math.min(getCollectedCount(), Math.ceil(100 * 0.25)),
+    condition: () => getCollectedCount() / 100 >= 0.25 },
+  { id: "coll-50",    category: "collection", icon: "i-book",
+    name: "言葉の半分まで",          description: "図鑑を 50% 集める",
+    target: Math.ceil(100 * 0.50),
+    progress: () => Math.min(getCollectedCount(), Math.ceil(100 * 0.50)),
+    condition: () => getCollectedCount() / 100 >= 0.50 },
+  { id: "coll-100",   category: "collection", icon: "i-medal",
+    name: "こころの図鑑、完成",      description: "図鑑をすべて集める",
+    target: 100,
+    progress: () => getCollectedCount(),
+    condition: () => getCollectedCount() >= 100 },
+
+  // ===== 回数 =====
+  { id: "count-10",   category: "count", icon: "i-capsule",
+    name: "10回の小さな儀式",        description: "通算10回ガチャを引く",
+    target: 10,  progress: () => Math.min(getCount(), 10),
+    condition: () => getCount() >= 10 },
+  { id: "count-50",   category: "count", icon: "i-capsule",
+    name: "50回の積み重ね",          description: "通算50回ガチャを引く",
+    target: 50,  progress: () => Math.min(getCount(), 50),
+    condition: () => getCount() >= 50 },
+  { id: "count-100",  category: "count", icon: "i-capsule",
+    name: "100回の対話",             description: "通算100回ガチャを引く",
+    target: 100, progress: () => Math.min(getCount(), 100),
+    condition: () => getCount() >= 100 },
+  { id: "count-500",  category: "count", icon: "i-trophy",
+    name: "500回の旅人",             description: "通算500回ガチャを引く",
+    target: 500, progress: () => Math.min(getCount(), 500),
+    condition: () => getCount() >= 500 },
+
+  // ===== 多様性 =====
+  { id: "all-moods",  category: "variety", icon: "i-leaf",
+    name: "こころの四季",            description: "すべての気分でガチャを引く",
+    target: 4,
+    progress: () => (getActionFlags().moodsTried || []).length,
+    condition: () => {
+      const tried = (getActionFlags().moodsTried || []);
+      return ["calm","tired","motivated","anxious"].every(m => tried.indexOf(m) !== -1);
+    }
+  },
+  { id: "all-times",  category: "variety", icon: "i-cloud",
+    name: "一日の四つの顔",          description: "朝・昼・夕・夜のすべての時間帯で引く",
+    target: 4,
+    progress: () => (getActionFlags().timesTried || []).length,
+    condition: () => {
+      const tried = (getActionFlags().timesTried || []);
+      return ["morning","afternoon","evening","night"].every(t => tried.indexOf(t) !== -1);
+    }
+  },
+
+  // ===== アクション =====
+  { id: "first-fav",   category: "action", icon: "i-heart",
+    name: "はじめての宝物",          description: "はじめてお気に入りに追加する",
+    target: 1, progress: () => getFavorites().length > 0 ? 1 : 0,
+    condition: () => getFavorites().length > 0 },
+  { id: "first-share", category: "action", icon: "i-share",
+    name: "言葉のおすそ分け",        description: "はじめてカードをシェアする",
+    target: 1, progress: () => getActionFlags().shared ? 1 : 0,
+    condition: () => !!getActionFlags().shared }
+];
+
+const ACHIEVEMENT_CATEGORIES = {
+  continuity:  "継続",
+  rarity:      "レア度",
+  collection:  "コレクション",
+  count:       "回数",
+  variety:     "多様性",
+  action:      "アクション"
+};
+
+function getUnlockedAchievements() { return lsGet(KEYS.achievements, {}); }
+function setUnlockedAchievements(obj) { lsSet(KEYS.achievements, obj); }
+function isAchievementUnlocked(id) { return !!getUnlockedAchievements()[id]; }
+
+function getActionFlags() { return lsGet(KEYS.actionFlags, {}); }
+function setActionFlags(obj) { lsSet(KEYS.actionFlags, obj); }
+
+function recordMoodTried(mood) {
+  if (!mood || mood === "any") return;
+  const f = getActionFlags();
+  f.moodsTried = f.moodsTried || [];
+  if (f.moodsTried.indexOf(mood) === -1) { f.moodsTried.push(mood); setActionFlags(f); }
+}
+function recordTimeTried(time) {
+  if (!time) return;
+  const f = getActionFlags();
+  f.timesTried = f.timesTried || [];
+  if (f.timesTried.indexOf(time) === -1) { f.timesTried.push(time); setActionFlags(f); }
+}
+function recordShared() {
+  const f = getActionFlags();
+  if (f.shared) return;
+  f.shared = Date.now(); setActionFlags(f);
+}
+
+function hasRarityCollected(rarity) {
+  const collected = getCollected();
+  return capsules.some(c => c.rarity === rarity && collected[c.id]);
+}
+
+function unlockAchievement(id) {
+  const unlocked = getUnlockedAchievements();
+  if (unlocked[id]) return false;
+  unlocked[id] = { unlockedAt: Date.now() };
+  setUnlockedAchievements(unlocked);
+  return true;
+}
+
+function checkAchievements() {
+  const unlocked = getUnlockedAchievements();
+  const newly = [];
+  achievements.forEach(a => {
+    if (unlocked[a.id]) return;
+    try { if (a.condition()) newly.push(a); } catch (e) {}
+  });
+  newly.forEach((a, i) => {
+    unlockAchievement(a.id);
+    setTimeout(() => showAchievementUnlock(a), 800 + i * 1400);
+  });
+  updateAchievementsNavBadge();
+  return newly;
+}
+
+function showAchievementUnlock(a) {
+  const $flash = $("#ach-flash");
+  $flash.removeClass("show");
+  void document.getElementById("ach-flash").offsetWidth;
+  $flash.addClass("show");
+  setTimeout(() => $flash.removeClass("show"), 1200);
+  SE.newGet();
+  showToast("実績達成：" + a.name);
+  if ($("#view-achievements").hasClass("active")) renderAchievements();
+}
+
+function updateAchievementsNavBadge() {
+  const unlocked = getUnlockedAchievements();
+  const got = Object.keys(unlocked).length;
+  const seen = lsGet("kg-ach-seen-count", 0);
+  if (got > seen) $("#nav-achievements-dot").addClass("show");
+  else $("#nav-achievements-dot").removeClass("show");
+  $("#ach-progress-text").text(got + " / " + achievements.length);
+  $("#ach-progress-fill").css("width", (got / achievements.length * 100) + "%");
+}
+
+function markAchievementsSeen() {
+  const got = Object.keys(getUnlockedAchievements()).length;
+  lsSet("kg-ach-seen-count", got);
+  $("#nav-achievements-dot").removeClass("show");
+}
+
+function renderAchievements() {
+  const $grid = $("#achievements-grid");
+  $grid.empty();
+  const unlocked = getUnlockedAchievements();
+
+  Object.keys(ACHIEVEMENT_CATEGORIES).forEach(catKey => {
+    const list = achievements.filter(a => a.category === catKey);
+    if (list.length === 0) return;
+    const $section = $('<div class="ach-section"><h3 class="ach-section-title">' + ACHIEVEMENT_CATEGORIES[catKey] + '</h3><div class="ach-list"></div></div>');
+    const $list = $section.find(".ach-list");
+    list.forEach(a => {
+      const isUnlocked = !!unlocked[a.id];
+      const prog = a.progress ? a.progress() : (isUnlocked ? 1 : 0);
+      const target = a.target || 1;
+      const pct = Math.min(100, prog / target * 100);
+      let unlockedAtStr = "";
+      if (isUnlocked) {
+        const d = new Date(unlocked[a.id].unlockedAt);
+        unlockedAtStr = d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+      }
+      const $card = $(
+        '<div class="ach-card' + (isUnlocked ? " unlocked" : " locked") + '" data-id="' + a.id + '">' +
+        '  <div class="ach-card-icon"><svg class="icon"><use href="#' + a.icon + '"></use></svg></div>' +
+        '  <div class="ach-card-body">' +
+        '    <div class="ach-card-name">' + escapeHtml(a.name) + '</div>' +
+        '    <div class="ach-card-desc">' + escapeHtml(a.description) + '</div>' +
+        '    <div class="ach-card-meter"><div class="ach-card-meter-fill" style="width:' + pct + '%"></div></div>' +
+        '    <div class="ach-card-foot">' +
+              (isUnlocked
+                 ? '<span class="ach-unlocked-at">解除: ' + unlockedAtStr + '</span>'
+                 : '<span class="ach-progress-num">' + prog + ' / ' + target + '</span>') +
+        '    </div>' +
+        '  </div>' +
+        '</div>'
+      );
+      $list.append($card);
+    });
+    $grid.append($section);
+  });
+
+  const got = Object.keys(unlocked).length;
+  $("#ach-progress-text").text(got + " / " + achievements.length);
+  $("#ach-progress-fill").css("width", (got / achievements.length * 100) + "%");
+}
 
 // ========================================
 // 10. UI 更新
@@ -466,6 +778,8 @@ function runGacha() {
   const selected = pickCapsule(currentMood);
   const effect = RARITY_EFFECTS[selected.rarity];
   updatePityAfter(selected.rarity);
+  recordMoodTried(currentMood);
+  recordTimeTried(getTimeOfDay());
 
   $("#result-card").removeClass("result-empty");
 
@@ -506,6 +820,7 @@ function runGacha() {
     $machine.removeClass("shake shake-r shake-sr shake-ssr");
     $aura.removeClass("aura-r aura-sr aura-ssr");
     showResult(selected);
+    checkAchievements();
   }, effect.shakeDuration);
 
   const lockTime = selected.rarity === "SSR" ? 2800 : effect.shakeDuration + 100;
@@ -702,6 +1017,7 @@ function switchView(name) {
   $('.nav-btn[data-view="' + name + '"]').addClass("active");
   if (name === "collection") { renderCollection(); $("#nav-collection-dot").removeClass("show"); }
   if (name === "favorites") renderFavorites();
+  if (name === "achievements") { renderAchievements(); markAchievementsSeen(); }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -826,6 +1142,8 @@ $(function () {
     if (!cap) return;
     const dataUrl = generateShareImage(cap);
     $("#share-download").attr("href", dataUrl);
+    recordShared();
+    checkAchievements();
     openModal("share-modal");
   });
   $("#share-copy").on("click", function () {
@@ -848,6 +1166,7 @@ $(function () {
   $("#reset-btn").on("click", function () {
     if (!confirm("すべての進捗をリセットします。よろしいですか？")) return;
     Object.keys(KEYS).forEach(k => { if (k.indexOf("legacy") === -1) localStorage.removeItem(KEYS[k]); });
+    localStorage.removeItem("kg-ach-seen-count");
     currentResultId = null;
     updateHeaderUI(false);
     updateStatusUI(false);
@@ -869,4 +1188,97 @@ $(function () {
   $(document).on("keydown", function (e) {
     if (e.key === "Escape") $(".modal.active").each(function () { closeModal(this.id); });
   });
+
+  // ========================================
+  // 実績システム初期化
+  // ========================================
+  updateAchievementsNavBadge();
+  checkAchievements();
+
+  $('.nav-btn[data-view="achievements"]').on("click", function () {
+    renderAchievements();
+    markAchievementsSeen();
+  });
+
+  // ========================================
+  // オンボーディング
+  // ========================================
+  const ONB_TOTAL_STEPS = 3;
+  let onbCurrent = 1;
+  let onbAnimating = false;
+
+  function showOnboarding() {
+    onbCurrent = 1;
+    onbAnimating = false;
+    $(".onb-step").removeClass("active leave-left").attr("aria-hidden", "true");
+    $('.onb-step[data-step="1"]').addClass("active").attr("aria-hidden", "false");
+    updateOnbDots();
+    updateOnbNextLabel();
+    $("#onboarding").addClass("active").attr("aria-hidden", "false");
+    setTimeout(() => { try { document.getElementById("onb-next").focus(); } catch (e) {} }, 350);
+  }
+
+  function hideOnboarding() {
+    $("#onboarding").removeClass("active").attr("aria-hidden", "true");
+  }
+
+  function finishOnboarding() {
+    lsSet(KEYS.onboarded, true);
+    hideOnboarding();
+  }
+
+  function updateOnbDots() {
+    $(".onb-dot").each(function () {
+      const idx = parseInt($(this).data("go"), 10);
+      $(this).removeClass("active done");
+      if (idx === onbCurrent) $(this).addClass("active");
+      else if (idx < onbCurrent) $(this).addClass("done");
+    });
+  }
+
+  function updateOnbNextLabel() {
+    $("#onb-next .onb-next-label").text(onbCurrent === ONB_TOTAL_STEPS ? "始める" : "次へ");
+  }
+
+  function goToOnbStep(target) {
+    if (onbAnimating || target === onbCurrent || target < 1 || target > ONB_TOTAL_STEPS) return;
+    onbAnimating = true;
+    const $current = $('.onb-step[data-step="' + onbCurrent + '"]');
+    const $next = $('.onb-step[data-step="' + target + '"]');
+    $current.removeClass("active").addClass(target > onbCurrent ? "leave-left" : "").attr("aria-hidden", "true");
+    $next.removeClass("active leave-left");
+    void $next[0].offsetWidth;
+    $next.addClass("active").attr("aria-hidden", "false");
+    onbCurrent = target;
+    updateOnbDots();
+    updateOnbNextLabel();
+    setTimeout(() => {
+      $current.removeClass("leave-left");
+      onbAnimating = false;
+    }, 320);
+  }
+
+  $("#onb-next").on("click", function () {
+    SE.tap();
+    if (onbCurrent < ONB_TOTAL_STEPS) goToOnbStep(onbCurrent + 1);
+    else finishOnboarding();
+  });
+
+  $("#onb-skip").on("click", function () { SE.tap(); finishOnboarding(); });
+
+  $(".onb-dot").on("click", function () {
+    SE.tap();
+    goToOnbStep(parseInt($(this).data("go"), 10));
+  });
+
+  $(document).on("keydown.onb", function (e) {
+    if (e.key === "Escape" && $("#onboarding").hasClass("active")) {
+      e.stopImmediatePropagation();
+      finishOnboarding();
+    }
+  });
+
+  if (!lsGet(KEYS.onboarded, false)) {
+    setTimeout(showOnboarding, 50);
+  }
 });

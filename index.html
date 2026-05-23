@@ -8,6 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.svg">
+  <link rel="icon" type="image/svg+xml" href="./icon-192.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="こころガチャ">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="毎日3分、自分の心と向き合う習慣">
 </head>
 <body data-time="afternoon" data-mood="calm">
 
@@ -70,6 +80,19 @@
 
       <symbol id="i-close" viewBox="0 0 24 24">
         <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+      </symbol>
+
+      <!-- 実績: メダル -->
+      <symbol id="i-medal" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M8 2h8l-1.5 5h-5L8 2z" opacity="0.7"/>
+        <circle cx="12" cy="15" r="6" fill="currentColor"/>
+        <circle cx="12" cy="15" r="3.6" fill="#fff8e1"/>
+        <path fill="none" stroke="currentColor" stroke-width="0.8" d="M12 12.4l0.8 1.6 1.8 0.3-1.3 1.2 0.3 1.8-1.6-0.85-1.6 0.85 0.3-1.8-1.3-1.2 1.8-0.3z"/>
+      </symbol>
+
+      <!-- 実績: トロフィー -->
+      <symbol id="i-trophy" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M7 4h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4zm-2 0h2v3c0 .7.1 1.4.3 2H5a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1h1zm14 0h1a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2h-2.3c.2-.6.3-1.3.3-2V4zm-9 9h4v3h2.5a.5.5 0 0 1 .5.5V19H7v-2.5a.5.5 0 0 1 .5-.5H10v-3z"/>
       </symbol>
 
       <!-- ガチャマシン (デザイナーズショップ風) -->
@@ -243,7 +266,7 @@
         <!-- 統計エリア -->
         <div class="status-area">
           <p id="count-text" class="count-text">回した回数：<span data-counter="count">0</span>回</p>
-          <p id="collection-text" class="collection-text">コレクション：<span data-counter="collected">0</span> / 40</p>
+          <p id="collection-text" class="collection-text">コレクション：<span data-counter="collected">0</span> / 100</p>
           <div class="progress-bar">
             <div id="progress-fill" class="progress-fill"></div>
             <div class="progress-milestones">
@@ -259,7 +282,7 @@
       <section id="view-collection" class="view view-collection">
         <div class="section-header">
           <h2 class="section-title">こころの図鑑</h2>
-          <p class="section-sub"><span id="coll-num">0</span> / 40 種類取得</p>
+          <p class="section-sub"><span id="coll-num">0</span> / 100 種類取得</p>
         </div>
         <div class="collection-filters">
           <button class="filter-btn active" data-filter="all" type="button">すべて</button>
@@ -284,6 +307,18 @@
         </p>
       </section>
 
+      <!-- ============ 実績タブ ============ -->
+      <section id="view-achievements" class="view view-achievements">
+        <div class="section-header">
+          <h2 class="section-title">こころの実績</h2>
+          <p class="section-sub"><span id="ach-progress-text">0 / 16</span> 達成</p>
+          <div class="ach-progress-bar">
+            <div id="ach-progress-fill" class="ach-progress-bar-fill"></div>
+          </div>
+        </div>
+        <div id="achievements-grid" class="achievements-grid"></div>
+      </section>
+
     </main>
 
     <!-- ===== ボトムナビゲーション ===== -->
@@ -300,6 +335,11 @@
       <button class="nav-btn" data-view="favorites" type="button">
         <svg class="nav-icon"><use href="#i-heart-o"></use></svg>
         <span class="nav-label">マイカード</span>
+      </button>
+      <button class="nav-btn" data-view="achievements" type="button">
+        <svg class="nav-icon"><use href="#i-medal"></use></svg>
+        <span class="nav-label">実績</span>
+        <span id="nav-achievements-dot" class="nav-dot"></span>
       </button>
     </nav>
 
@@ -393,7 +433,101 @@
   <!-- ===== トースト通知 ===== -->
   <div id="toast" class="toast"></div>
 
+  <!-- ===== 実績解除フラッシュ ===== -->
+  <div id="ach-flash" class="ach-flash" aria-hidden="true">
+    <div class="ach-flash-ring"></div>
+    <div class="ach-flash-sparkle">
+      <svg><use href="#i-sparkle"></use></svg>
+      <svg><use href="#i-sparkle"></use></svg>
+      <svg><use href="#i-sparkle"></use></svg>
+      <svg><use href="#i-sparkle"></use></svg>
+      <svg><use href="#i-sparkle"></use></svg>
+    </div>
+  </div>
+
+  <!-- ===== オンボーディング ===== -->
+  <div id="onboarding" class="onboarding" role="dialog" aria-modal="true" aria-labelledby="onb-title" aria-hidden="true">
+    <div class="onboarding-backdrop"></div>
+    <div class="onboarding-panel">
+
+      <button id="onb-skip" class="onb-skip" type="button">スキップ</button>
+
+      <div class="onb-steps">
+
+        <!-- Step 1: ようこそ -->
+        <section class="onb-step active" data-step="1" aria-labelledby="onb-title">
+          <div class="onb-art onb-art-1" aria-hidden="true">
+            <div class="onb-art-bg"></div>
+            <svg class="onb-art-icon onb-art-gift"><use href="#i-gift"></use></svg>
+            <svg class="onb-art-sparkle onb-art-sparkle-1"><use href="#i-sparkle"></use></svg>
+            <svg class="onb-art-sparkle onb-art-sparkle-2"><use href="#i-sparkle"></use></svg>
+            <svg class="onb-art-sparkle onb-art-sparkle-3"><use href="#i-sparkle"></use></svg>
+          </div>
+          <p class="onb-eyebrow">ようこそ</p>
+          <h2 id="onb-title" class="onb-title">こころのガチャへ</h2>
+          <p class="onb-lead">毎日3分、自分の心と<br>そっと向き合う習慣を。</p>
+          <p class="onb-desc">あなたの今日の気分にあわせて、<br>優しい言葉がそっと届きます。</p>
+        </section>
+
+        <!-- Step 2: 気分で引く -->
+        <section class="onb-step" data-step="2" aria-labelledby="onb-title-2" aria-hidden="true">
+          <div class="onb-art onb-art-2" aria-hidden="true">
+            <div class="onb-art-bg"></div>
+            <div class="onb-moods">
+              <span class="onb-mood onb-mood-1"><svg><use href="#i-cloud"></use></svg></span>
+              <span class="onb-mood onb-mood-2"><svg><use href="#i-rain"></use></svg></span>
+              <span class="onb-mood onb-mood-3 active"><svg><use href="#i-leaf"></use></svg></span>
+              <span class="onb-mood onb-mood-4"><svg><use href="#i-fire"></use></svg></span>
+            </div>
+            <svg class="onb-art-icon onb-art-capsule"><use href="#i-capsule"></use></svg>
+          </div>
+          <p class="onb-eyebrow">Step 2</p>
+          <h2 id="onb-title-2" class="onb-title">気分で引く</h2>
+          <p class="onb-lead">いまの気分を選んで、<br>ガチャを回してみましょう。</p>
+          <p class="onb-desc">さらに「今日のひとこと」は<br>1日1回、特別な言葉が届きます。</p>
+        </section>
+
+        <!-- Step 3: 集めて、お気に入りに -->
+        <section class="onb-step" data-step="3" aria-labelledby="onb-title-3" aria-hidden="true">
+          <div class="onb-art onb-art-3" aria-hidden="true">
+            <div class="onb-art-bg"></div>
+            <svg class="onb-art-icon onb-art-book"><use href="#i-book"></use></svg>
+            <svg class="onb-art-icon onb-art-heart"><use href="#i-heart"></use></svg>
+            <svg class="onb-art-sparkle onb-art-sparkle-1"><use href="#i-sparkle"></use></svg>
+            <svg class="onb-art-sparkle onb-art-sparkle-2"><use href="#i-sparkle"></use></svg>
+          </div>
+          <p class="onb-eyebrow">Step 3</p>
+          <h2 id="onb-title-3" class="onb-title">集めて、お気に入りに</h2>
+          <p class="onb-lead">届いた言葉は「図鑑」に<br>そっと集まっていきます。</p>
+          <p class="onb-desc">心に残ったひとことは、<br>マイカードに保存できます。</p>
+        </section>
+
+      </div>
+
+      <div class="onb-footer">
+        <div class="onb-dots" role="tablist" aria-label="チュートリアルの進捗">
+          <button class="onb-dot active" data-go="1" type="button" aria-label="ステップ1"></button>
+          <button class="onb-dot" data-go="2" type="button" aria-label="ステップ2"></button>
+          <button class="onb-dot" data-go="3" type="button" aria-label="ステップ3"></button>
+        </div>
+        <button id="onb-next" class="onb-next" type="button">
+          <span class="onb-next-label">次へ</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="js/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then((reg) => console.log('SW registered:', reg.scope))
+          .catch((err) => console.warn('SW registration failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>

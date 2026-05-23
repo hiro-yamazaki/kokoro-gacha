@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- 背景（safe zone を考慮し全面塗り） -->
+  <rect width="512" height="512" fill="#f4f3f0"/>
+
+  <!-- カプセル本体（safe zone 内：中心 256,256 / 半径 160） -->
+  <g>
+    <!-- カプセル下半分（濃色） -->
+    <path d="M 96 256 A 160 160 0 0 0 416 256 Z" fill="#1a1a1a"/>
+    <!-- カプセル上半分（淡色アウトライン） -->
+    <path d="M 96 256 A 160 160 0 0 1 416 256 Z" fill="#f4f3f0" stroke="#1a1a1a" stroke-width="10"/>
+    <!-- 中央の合わせ目 -->
+    <line x1="96" y1="256" x2="416" y2="256" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <!-- 「こ」を上半分に配置 -->
+  <text x="256" y="218"
+        font-family="'Hiragino Mincho ProN','Yu Mincho',serif"
+        font-size="148"
+        font-weight="600"
+        fill="#1a1a1a"
+        text-anchor="middle"
+        dominant-baseline="middle">こ</text>
+
+  <!-- 下半分に小さな点（心のときめきの暗喩） -->
+  <circle cx="256" cy="340" r="8" fill="#f4f3f0"/>
+</svg>
