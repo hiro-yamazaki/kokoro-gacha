@@ -1,26 +1,12 @@
 // ========================================
-// こころのガチャ v3 - 習慣化フォーカス版
-// プロのゲームデザインを意識したフル機能
-// ========================================
-// 機能:
-//   - 40メッセージ (気分・時間帯タグ付き)
-//   - デイリーメッセージ (日付シードで1日1回)
-//   - 連続日数 (Streak) システム
-//   - 気分セレクトで確率変動
-//   - 天井 (Pity) システム
-//   - 図鑑 / マイカード / シェア
-//   - サウンド (Web Audio API シンセ)
-//   - 確定演出 (SR以上の予告グロー)
+// こころのガチャ v3.1 - 習慣化フォーカス + プロ仕上げ
+// 時間帯テーマ / 気分リアクティブ / カスタムSVG / 数字カウントアップ / 粒子背景
 // ========================================
 
 // ========================================
 // 1. データ定義
 // ========================================
 
-// 40 メッセージ
-// rarity: N(60%) / R(25%) / SR(12%) / SSR(3%)
-// time : morning / afternoon / evening / night / any
-// mood : anxious / tired / calm / motivated / any
 const capsules = [
   // ===== SSR (2件 / 3%) =====
   { id: 1,  rarity: "SSR", category: "ほっとする言葉",   message: "今日は、ちゃんとここまで来ただけで十分です。",         time: "any",      mood: "any" },
@@ -72,34 +58,22 @@ const capsules = [
 ];
 
 const RARITY_RATES = { SSR: 3, SR: 12, R: 25, N: 60 };
-
 const RARITY_EFFECTS = {
   N:   { shakeClass: "shake",     shakeDuration: 500,  cardClass: "" },
   R:   { shakeClass: "shake-r",   shakeDuration: 700,  cardClass: "card-r" },
   SR:  { shakeClass: "shake-sr",  shakeDuration: 1000, cardClass: "card-sr" },
   SSR: { shakeClass: "shake-ssr", shakeDuration: 1400, cardClass: "card-ssr" }
 };
+const PITY_SR_THRESHOLD = 20;
+const PITY_SSR_THRESHOLD = 80;
 
-// 天井 (Pity) しきい値
-const PITY_SR_THRESHOLD = 20;   // 20回連続 N/R で次は SR以上確定
-const PITY_SSR_THRESHOLD = 80;  // 80回連続 SSRなしで次は SSR確定
-
-// localStorage キー
 const KEYS = {
-  count:        "kg-count",
-  collected:    "kg-collected",          // 取得済みID -> {firstAt: timestamp, lastAt: timestamp}
-  favorites:    "kg-favorites",          // お気に入りID配列
-  streakLast:   "kg-streak-last",        // 最後にガチャした日 "YYYY-MM-DD"
-  streakCount:  "kg-streak-count",       // 現在の連続日数
-  streakMax:    "kg-streak-max",         // 最長記録
-  pitySR:       "kg-pity-sr",            // SR天井カウンタ
-  pitySSR:      "kg-pity-ssr",           // SSR天井カウンタ
-  dailyDate:    "kg-daily-date",         // 最後にデイリーを開いた日付
-  dailyOpenId:  "kg-daily-open-id",      // その日のデイリーID (公開済みなら)
-  soundOn:      "kg-sound-on",           // サウンド ON/OFF
-  // v2 互換キー (旧データ移行用)
-  legacyCollected: "kokoro-gacha-collected",
-  legacyCount:     "kokoro-gacha-count"
+  count: "kg-count", collected: "kg-collected", favorites: "kg-favorites",
+  streakLast: "kg-streak-last", streakCount: "kg-streak-count", streakMax: "kg-streak-max",
+  pitySR: "kg-pity-sr", pitySSR: "kg-pity-ssr",
+  dailyDate: "kg-daily-date", dailyOpenId: "kg-daily-open-id",
+  soundOn: "kg-sound-on",
+  legacyCollected: "kokoro-gacha-collected", legacyCount: "kokoro-gacha-count"
 };
 
 // ========================================
@@ -111,33 +85,21 @@ function lsGet(key, fallback) {
     const v = localStorage.getItem(key);
     if (v === null) return fallback;
     return JSON.parse(v);
-  } catch (e) {
-    return fallback;
-  }
+  } catch (e) { return fallback; }
 }
+function lsSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
-function lsSet(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-// v2 → v3 マイグレーション (1回だけ実行)
 function migrateLegacy() {
-  if (lsGet(KEYS.collected, null) !== null) return;  // v3キーが既にあれば不要
-
+  if (lsGet(KEYS.collected, null) !== null) return;
   const legacyIds = lsGet(KEYS.legacyCollected, []);
   if (Array.isArray(legacyIds) && legacyIds.length > 0) {
     const now = Date.now();
     const migrated = {};
-    legacyIds.forEach(id => {
-      migrated[id] = { firstAt: now, lastAt: now };
-    });
+    legacyIds.forEach(id => { migrated[id] = { firstAt: now, lastAt: now }; });
     lsSet(KEYS.collected, migrated);
   }
-
   const legacyCount = lsGet(KEYS.legacyCount, 0);
-  if (legacyCount && !lsGet(KEYS.count, null)) {
-    lsSet(KEYS.count, legacyCount);
-  }
+  if (legacyCount && !lsGet(KEYS.count, null)) lsSet(KEYS.count, legacyCount);
 }
 
 // ========================================
@@ -146,18 +108,13 @@ function migrateLegacy() {
 
 function todayStr() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return y + "-" + m + "-" + dd;
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-
 function formatDateJP(str) {
   const m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return str;
   return parseInt(m[1], 10) + "年" + parseInt(m[2], 10) + "月" + parseInt(m[3], 10) + "日";
 }
-
 function getTimeOfDay() {
   const h = new Date().getHours();
   if (h >= 5 && h < 11) return "morning";
@@ -165,15 +122,42 @@ function getTimeOfDay() {
   if (h >= 17 && h < 22) return "evening";
   return "night";
 }
-
-// 日付ベースの決定論的乱数 (0~1)
 function dateSeededRandom(dateStr) {
   let h = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    h = ((h << 5) - h) + dateStr.charCodeAt(i);
-    h |= 0;
-  }
+  for (let i = 0; i < dateStr.length; i++) { h = ((h << 5) - h) + dateStr.charCodeAt(i); h |= 0; }
   return Math.abs(h % 10000) / 10000;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+}
+function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+// SVG アイコン参照ヘルパー (テンプレ用)
+function icon(id, cls) {
+  return '<svg class="' + (cls || 'icon') + '"><use href="#i-' + id + '"></use></svg>';
+}
+
+// 数字カウントアップアニメ
+function animateCount(el, to, duration) {
+  if (!el) return;
+  const from = parseInt(el.getAttribute("data-value") || el.textContent || "0", 10) || 0;
+  if (from === to) { el.textContent = to; return; }
+  duration = duration || 600;
+  const start = performance.now();
+  const step = (now) => {
+    const progress = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const cur = Math.round(from + (to - from) * eased);
+    el.textContent = cur;
+    if (progress < 1) requestAnimationFrame(step);
+    else {
+      el.textContent = to;
+      el.setAttribute("data-value", to);
+      el.classList.add("tick");
+      setTimeout(() => el.classList.remove("tick"), 450);
+    }
+  };
+  requestAnimationFrame(step);
 }
 
 // ========================================
@@ -183,15 +167,11 @@ function dateSeededRandom(dateStr) {
 let audioCtx = null;
 function getAudioCtx() {
   if (!audioCtx) {
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-      return null;
-    }
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { return null; }
   }
   return audioCtx;
 }
-
 function playTone(freq, duration, type, gain) {
   if (!lsGet(KEYS.soundOn, true)) return;
   const ctx = getAudioCtx();
@@ -209,18 +189,13 @@ function playTone(freq, duration, type, gain) {
     osc.stop(ctx.currentTime + duration);
   } catch (e) {}
 }
-
 const SE = {
   tap:    () => playTone(880, 0.05, "sine", 0.1),
-  click:  () => { playTone(440, 0.06, "sine", 0.12); },
-  open:   () => { playTone(660, 0.1, "sine", 0.18); setTimeout(() => playTone(880, 0.1, "sine", 0.15), 80); },
-  rollN:  () => { playTone(330, 0.3, "triangle", 0.12); },
+  click:  () => playTone(440, 0.06, "sine", 0.12),
+  rollN:  () => playTone(330, 0.3, "triangle", 0.12),
   rollR:  () => { playTone(440, 0.4, "triangle", 0.14); setTimeout(() => playTone(587, 0.2, "sine", 0.12), 200); },
   rollSR: () => { playTone(523, 0.4, "triangle", 0.15); setTimeout(() => playTone(659, 0.2, "sine", 0.13), 200); setTimeout(() => playTone(784, 0.4, "sine", 0.13), 400); },
-  rollSSR:() => {
-    const notes = [523, 659, 784, 988, 1175];
-    notes.forEach((f, i) => setTimeout(() => playTone(f, 0.3, "sine", 0.16), i * 120));
-  },
+  rollSSR:() => [523, 659, 784, 988, 1175].forEach((f, i) => setTimeout(() => playTone(f, 0.3, "sine", 0.16), i * 120)),
   fav:    () => playTone(1046, 0.08, "sine", 0.15),
   unfav:  () => playTone(523, 0.08, "sine", 0.15),
   newGet: () => { playTone(880, 0.12, "sine", 0.18); setTimeout(() => playTone(1175, 0.15, "sine", 0.16), 100); },
@@ -228,33 +203,21 @@ const SE = {
 };
 
 // ========================================
-// 5. 状態取得関数
+// 5. 状態取得
 // ========================================
 
 function getCount() { return parseInt(lsGet(KEYS.count, 0), 10) || 0; }
 function setCount(n) { lsSet(KEYS.count, n); }
-
 function getCollected() { return lsGet(KEYS.collected, {}); }
 function setCollected(obj) { lsSet(KEYS.collected, obj); }
-
 function getFavorites() { return lsGet(KEYS.favorites, []); }
 function setFavorites(arr) { lsSet(KEYS.favorites, arr); }
-
 function isFavorite(id) { return getFavorites().indexOf(id) !== -1; }
 function toggleFavorite(id) {
   const favs = getFavorites();
   const idx = favs.indexOf(id);
-  if (idx === -1) {
-    favs.push(id);
-    setFavorites(favs);
-    SE.fav();
-    return true;
-  } else {
-    favs.splice(idx, 1);
-    setFavorites(favs);
-    SE.unfav();
-    return false;
-  }
+  if (idx === -1) { favs.push(id); setFavorites(favs); SE.fav(); return true; }
+  favs.splice(idx, 1); setFavorites(favs); SE.unfav(); return false;
 }
 
 // ========================================
@@ -265,66 +228,42 @@ function updateStreak() {
   const today = todayStr();
   const last = lsGet(KEYS.streakLast, null);
   let streak = lsGet(KEYS.streakCount, 0);
-  if (last === today) return streak;  // 今日すでに更新済み
-
+  if (last === today) return { streak: streak, ticked: false };
   if (last) {
     const lastD = new Date(last);
     const todayD = new Date(today);
     const diff = Math.round((todayD - lastD) / 86400000);
     if (diff === 1) streak += 1;
     else streak = 1;
-  } else {
-    streak = 1;
-  }
+  } else streak = 1;
   lsSet(KEYS.streakLast, today);
   lsSet(KEYS.streakCount, streak);
   const max = lsGet(KEYS.streakMax, 0);
   if (streak > max) lsSet(KEYS.streakMax, streak);
-  return streak;
+  return { streak: streak, ticked: true };
 }
-
-function getStreak() {
-  const today = todayStr();
-  const last = lsGet(KEYS.streakLast, null);
-  let streak = lsGet(KEYS.streakCount, 0);
-  if (last && last !== today) {
-    const lastD = new Date(last);
-    const todayD = new Date(today);
-    const diff = Math.round((todayD - lastD) / 86400000);
-    if (diff > 1) return streak;  // 途切れている表示はそのまま
-  }
-  return streak;
-}
+function getStreak() { return lsGet(KEYS.streakCount, 0); }
 
 // ========================================
-// 7. 抽選ロジック (気分・時間帯・天井)
+// 7. 抽選
 // ========================================
 
 function pickRarity() {
   const pitySR = lsGet(KEYS.pitySR, 0);
   const pitySSR = lsGet(KEYS.pitySSR, 0);
-
-  // 天井判定
   if (pitySSR >= PITY_SSR_THRESHOLD) return "SSR";
-  if (pitySR >= PITY_SR_THRESHOLD) {
-    return Math.random() < 0.2 ? "SSR" : "SR";  // SR以上確定
-  }
-
+  if (pitySR >= PITY_SR_THRESHOLD) return Math.random() < 0.2 ? "SSR" : "SR";
   const r = Math.random() * 100;
   if (r < RARITY_RATES.SSR) return "SSR";
   if (r < RARITY_RATES.SSR + RARITY_RATES.SR) return "SR";
   if (r < RARITY_RATES.SSR + RARITY_RATES.SR + RARITY_RATES.R) return "R";
   return "N";
 }
-
 function pickCapsule(currentMood) {
   const rarity = pickRarity();
   const pool = capsules.filter(c => c.rarity === rarity);
   if (pool.length === 0) return capsules[0];
-
   const time = getTimeOfDay();
-
-  // 重み計算: 気分マッチ +2, 時間帯マッチ +1
   const weights = pool.map(c => {
     let w = 1;
     if (c.mood === currentMood && currentMood && currentMood !== "any") w += 2;
@@ -333,13 +272,9 @@ function pickCapsule(currentMood) {
   });
   const total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
-  for (let i = 0; i < pool.length; i++) {
-    r -= weights[i];
-    if (r < 0) return pool[i];
-  }
+  for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r < 0) return pool[i]; }
   return pool[pool.length - 1];
 }
-
 function updatePityAfter(rarity) {
   let pitySR = lsGet(KEYS.pitySR, 0);
   let pitySSR = lsGet(KEYS.pitySSR, 0);
@@ -351,13 +286,12 @@ function updatePityAfter(rarity) {
 }
 
 // ========================================
-// 8. デイリーメッセージ
+// 8. デイリー
 // ========================================
 
 function getDailyCapsule() {
   const today = todayStr();
   const seed = dateSeededRandom(today);
-  // SSR 5% / SR 20% / R 35% / N 40% の偏った確率 (デイリーは少し豪華)
   let rarity;
   if (seed < 0.05) rarity = "SSR";
   else if (seed < 0.25) rarity = "SR";
@@ -367,55 +301,50 @@ function getDailyCapsule() {
   const idx = Math.floor(seed * 10000) % pool.length;
   return pool[idx];
 }
-
-function isDailyOpened() {
-  return lsGet(KEYS.dailyDate, null) === todayStr();
-}
-
+function isDailyOpened() { return lsGet(KEYS.dailyDate, null) === todayStr(); }
 function openDaily() {
-  const today = todayStr();
   const cap = getDailyCapsule();
-  lsSet(KEYS.dailyDate, today);
+  lsSet(KEYS.dailyDate, todayStr());
   lsSet(KEYS.dailyOpenId, cap.id);
   addToCollection(cap.id);
   return cap;
 }
 
 // ========================================
-// 9. コレクション操作
+// 9. コレクション
 // ========================================
 
 function addToCollection(id) {
   const c = getCollected();
   const now = Date.now();
-  if (!c[id]) {
-    c[id] = { firstAt: now, lastAt: now };
-    setCollected(c);
-    return true;  // NEW
-  } else {
-    c[id].lastAt = now;
-    setCollected(c);
-    return false;
-  }
+  if (!c[id]) { c[id] = { firstAt: now, lastAt: now }; setCollected(c); return true; }
+  c[id].lastAt = now; setCollected(c); return false;
 }
-
-function getCollectedCount() {
-  return Object.keys(getCollected()).length;
-}
+function getCollectedCount() { return Object.keys(getCollected()).length; }
 
 // ========================================
-// 10. UI 更新関数
+// 10. UI 更新
 // ========================================
 
-function updateHeaderUI() {
-  $("#streak-count").text(getStreak());
+function updateHeaderUI(animate) {
+  const el = document.getElementById("streak-count");
+  if (animate) animateCount(el, getStreak());
+  else { el.textContent = getStreak(); el.setAttribute("data-value", getStreak()); }
 }
 
-function updateStatusUI() {
+function updateStatusUI(animate) {
   const total = capsules.length;
   const collected = getCollectedCount();
-  $("#count-text").text("回した回数：" + getCount() + "回");
-  $("#collection-text").text("コレクション：" + collected + " / " + total);
+  const count = getCount();
+  const countEl = document.querySelector('[data-counter="count"]');
+  const collectedEl = document.querySelector('[data-counter="collected"]');
+  if (animate) {
+    animateCount(countEl, count);
+    animateCount(collectedEl, collected);
+  } else {
+    if (countEl) { countEl.textContent = count; countEl.setAttribute("data-value", count); }
+    if (collectedEl) { collectedEl.textContent = collected; collectedEl.setAttribute("data-value", collected); }
+  }
   $("#progress-fill").css("width", (collected / total * 100) + "%");
   $("#coll-num").text(collected);
   $("#fav-num").text(getFavorites().length);
@@ -426,19 +355,19 @@ function updateStatusUI() {
     $("#collection-text").removeClass("complete");
     $("#progress-fill").removeClass("complete");
   }
-  // 天井までの残り
-  const pitySR = lsGet(KEYS.pitySR, 0);
-  $("#settings-pity").text("SR " + Math.max(0, PITY_SR_THRESHOLD - pitySR) + " 回 / SSR " + Math.max(0, PITY_SSR_THRESHOLD - lsGet(KEYS.pitySSR, 0)) + " 回");
+  // マイルストーン
+  const pct = collected / total * 100;
+  $(".milestone").each(function () {
+    const at = parseInt($(this).data("at"), 10);
+    if (pct >= at) $(this).addClass("passed"); else $(this).removeClass("passed");
+  });
+  $("#settings-pity").text("SR " + Math.max(0, PITY_SR_THRESHOLD - lsGet(KEYS.pitySR, 0)) + " 回 / SSR " + Math.max(0, PITY_SSR_THRESHOLD - lsGet(KEYS.pitySSR, 0)) + " 回");
 }
 
 function updatePityHint() {
-  const pitySR = lsGet(KEYS.pitySR, 0);
-  const remain = PITY_SR_THRESHOLD - pitySR;
-  if (remain <= 5 && remain > 0) {
-    $("#pity-text").text("あと " + remain + " 回で SR 以上確定").addClass("show");
-  } else {
-    $("#pity-text").text("").removeClass("show");
-  }
+  const remain = PITY_SR_THRESHOLD - lsGet(KEYS.pitySR, 0);
+  if (remain <= 5 && remain > 0) $("#pity-text").text("あと " + remain + " 回で SR 以上確定").addClass("show");
+  else $("#pity-text").text("").removeClass("show");
 }
 
 function updateSettingsUI() {
@@ -452,35 +381,57 @@ function updateDailyCardUI() {
   $("#daily-date").text(formatDateJP(todayStr()));
   const $card = $("#daily-card");
   const $content = $("#daily-content");
-
   if (isDailyOpened()) {
     const id = lsGet(KEYS.dailyOpenId, null);
     const cap = capsules.find(c => c.id === id);
     if (cap) {
-      $content.removeClass("daily-locked")
-              .addClass("daily-opened rarity-" + cap.rarity.toLowerCase())
-              .html(
-                '<p class="daily-message">' + escapeHtml(cap.message) + '</p>' +
-                '<p class="daily-meta">' + cap.category + ' · ' + cap.rarity + '</p>'
-              );
+      $content.removeClass("daily-locked").addClass("daily-opened rarity-" + cap.rarity.toLowerCase())
+              .html('<p class="daily-message">' + escapeHtml(cap.message) + '</p><p class="daily-meta">' + cap.category + ' · ' + cap.rarity + '</p>');
       $card.addClass("daily-opened-card");
     }
   } else {
-    $content.removeClass("daily-opened rarity-n rarity-r rarity-sr rarity-ssr")
-            .addClass("daily-locked")
-            .html('<span class="daily-lock-icon">🎁</span><p class="daily-prompt">タップして今日の言葉を開く</p>');
+    $content.removeClass("daily-opened rarity-n rarity-r rarity-sr rarity-ssr").addClass("daily-locked")
+            .html(icon("gift", "daily-lock-icon") + '<p class="daily-prompt">タップして今日の言葉を開く</p>');
     $card.removeClass("daily-opened-card");
   }
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
+// ========================================
+// 11. テーマ・気分・粒子
+// ========================================
+
+function applyTimeTheme() {
+  document.body.setAttribute("data-time", getTimeOfDay());
+}
+
+function applyMood(mood) {
+  document.body.setAttribute("data-mood", mood);
+  // 粒子色も更新
+  refreshParticles();
+}
+
+function refreshParticles() {
+  const container = document.getElementById("particles");
+  if (!container) return;
+  container.innerHTML = "";
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    const size = 4 + Math.random() * 12;
+    p.style.width = size + "px";
+    p.style.height = size + "px";
+    p.style.left = (Math.random() * 100) + "%";
+    p.style.setProperty("--p-duration", (12 + Math.random() * 14) + "s");
+    p.style.setProperty("--p-delay", (Math.random() * 14) + "s");
+    p.style.setProperty("--p-opacity", (0.15 + Math.random() * 0.3).toString());
+    p.style.setProperty("--p-x-end", ((Math.random() - 0.5) * 80) + "px");
+    container.appendChild(p);
+  }
 }
 
 // ========================================
-// 11. ガチャ実行
+// 12. ガチャ実行
 // ========================================
 
 const categoryClassMap = {
@@ -498,24 +449,27 @@ function runGacha() {
   if ($button.prop("disabled")) return;
   $button.prop("disabled", true);
 
-  // 初日の更新 (連続日数)
-  updateStreak();
+  // ストリーク更新
+  const streakResult = updateStreak();
+  if (streakResult.ticked) {
+    $("#streak-badge").addClass("tick celebrate");
+    setTimeout(() => $("#streak-badge").removeClass("tick celebrate"), 1100);
+    updateHeaderUI(true);
+  }
 
   // カウントUP
   const newCount = getCount() + 1;
   setCount(newCount);
-  updateStatusUI();
-  updateHeaderUI();
+  updateStatusUI(true);
 
   // 抽選
   const selected = pickCapsule(currentMood);
   const effect = RARITY_EFFECTS[selected.rarity];
   updatePityAfter(selected.rarity);
 
-  // 結果カードを「処理中」状態に
   $("#result-card").removeClass("result-empty");
 
-  // 確定演出 (SR以上のとき、揺れ開始前に一瞬光らせる)
+  // 確定演出
   const $glow = $("#confirmation-glow");
   $glow.removeClass("show glow-sr glow-ssr");
   if (selected.rarity === "SR" || selected.rarity === "SSR") {
@@ -531,7 +485,6 @@ function runGacha() {
   void document.getElementById("gacha-machine").offsetWidth;
   $machine.addClass(effect.shakeClass);
 
-  // サウンド (rarity別)
   if (selected.rarity === "SSR") SE.rollSSR();
   else if (selected.rarity === "SR") SE.rollSR();
   else if (selected.rarity === "R") SE.rollR();
@@ -541,7 +494,6 @@ function runGacha() {
   if (selected.rarity === "SR") $aura.addClass("aura-sr");
   if (selected.rarity === "SSR") $aura.addClass("aura-ssr");
 
-  // SSR全画面エフェクト
   if (selected.rarity === "SSR") {
     const $overlay = $("#ssr-overlay");
     $overlay.removeClass("active");
@@ -556,7 +508,6 @@ function runGacha() {
     showResult(selected);
   }, effect.shakeDuration);
 
-  // ボタン再有効化
   const lockTime = selected.rarity === "SSR" ? 2800 : effect.shakeDuration + 100;
   setTimeout(() => $button.prop("disabled", false), lockTime);
 }
@@ -566,17 +517,12 @@ function showResult(selected) {
   $("#category").text(selected.category);
   $("#message").text(selected.message);
 
-  // カード装飾
   const $card = $("#result-card");
   $card.removeClass("fade-in card-r card-sr card-ssr result-empty");
   void document.getElementById("result-card").offsetWidth;
-  if (RARITY_EFFECTS[selected.rarity].cardClass) {
-    $card.addClass(RARITY_EFFECTS[selected.rarity].cardClass);
-  } else {
-    $card.addClass("fade-in");
-  }
+  if (RARITY_EFFECTS[selected.rarity].cardClass) $card.addClass(RARITY_EFFECTS[selected.rarity].cardClass);
+  else $card.addClass("fade-in");
 
-  // カプセル
   const $capsule = $(".capsule-icon");
   $capsule.removeClass("cat-relax cat-advice cat-quote cat-balance rarity-r rarity-sr rarity-ssr open");
   if (categoryClassMap[selected.category]) $capsule.addClass(categoryClassMap[selected.category]);
@@ -587,27 +533,21 @@ function showResult(selected) {
   $capsule.addClass("open");
   setTimeout(() => $capsule.removeClass("open"), 1500);
 
-  // コレクション追加
   const isNew = addToCollection(selected.id);
   if (isNew) SE.newGet();
-  updateStatusUI();
+  updateStatusUI(true);
   updatePityHint();
   renderCollection();
   renderFavorites();
 
-  // NEW! バッジ
   const $newBadge = $("#new-badge");
   $newBadge.removeClass("show");
   void document.getElementById("new-badge").offsetWidth;
   if (isNew) $newBadge.addClass("show");
 
-  // ハート (お気に入り) 状態反映
   updateFavoriteBtn();
-
-  // シェア有効化
   $("#share-btn").prop("disabled", false);
 
-  // ナビ図鑑の通知ドット (新規取得時)
   if (isNew) {
     $("#nav-collection-dot").addClass("show");
     setTimeout(() => showToast("新しいカードを獲得！"), 600);
@@ -618,14 +558,14 @@ function updateFavoriteBtn() {
   if (!currentResultId) return;
   const $btn = $("#favorite-btn");
   if (isFavorite(currentResultId)) {
-    $btn.addClass("active").attr("aria-pressed", "true").html("<span aria-hidden='true'>♥</span>");
+    $btn.addClass("active").attr("aria-pressed", "true").html(icon("heart"));
   } else {
-    $btn.removeClass("active").attr("aria-pressed", "false").html("<span aria-hidden='true'>♡</span>");
+    $btn.removeClass("active").attr("aria-pressed", "false").html(icon("heart-o"));
   }
 }
 
 // ========================================
-// 12. 図鑑レンダリング
+// 13. 図鑑
 // ========================================
 
 let currentFilter = "all";
@@ -634,7 +574,6 @@ function renderCollection() {
   const $grid = $("#collection-grid");
   $grid.empty();
   const collected = getCollected();
-
   capsules.forEach(c => {
     if (currentFilter !== "all" && c.rarity !== currentFilter) return;
     const isCollected = !!collected[c.id];
@@ -656,24 +595,16 @@ function renderCollection() {
   });
 }
 
-function truncate(s, n) {
-  return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-
 // ========================================
-// 13. お気に入りレンダリング
+// 14. お気に入り
 // ========================================
 
 function renderFavorites() {
   const $list = $("#favorites-list");
   $list.empty();
   const favs = getFavorites();
-  if (favs.length === 0) {
-    $("#favorites-empty").show();
-    return;
-  }
+  if (favs.length === 0) { $("#favorites-empty").show(); return; }
   $("#favorites-empty").hide();
-
   favs.forEach(id => {
     const c = capsules.find(x => x.id === id);
     if (!c) return;
@@ -682,7 +613,7 @@ function renderFavorites() {
       '  <div class="fav-card-head">' +
       '    <span class="fav-rarity">' + c.rarity + '</span>' +
       '    <span class="fav-category">' + c.category + '</span>' +
-      '    <button class="fav-remove" data-id="' + c.id + '" type="button" aria-label="お気に入り解除">♥</button>' +
+      '    <button class="fav-remove" data-id="' + c.id + '" type="button" aria-label="お気に入り解除">' + icon("heart") + '</button>' +
       '  </div>' +
       '  <p class="fav-msg">' + escapeHtml(c.message) + '</p>' +
       '</div>'
@@ -692,7 +623,7 @@ function renderFavorites() {
 }
 
 // ========================================
-// 14. シェア画像生成 (Canvas)
+// 15. シェア画像生成
 // ========================================
 
 function generateShareImage(capsule) {
@@ -700,7 +631,6 @@ function generateShareImage(capsule) {
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
 
-  // 背景
   const bg = ctx.createLinearGradient(0, 0, W, H);
   if (capsule.rarity === "SSR") { bg.addColorStop(0, "#fff8e1"); bg.addColorStop(1, "#ffe4a3"); }
   else if (capsule.rarity === "SR") { bg.addColorStop(0, "#f4eeff"); bg.addColorStop(1, "#d4cce8"); }
@@ -709,53 +639,48 @@ function generateShareImage(capsule) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // タイトル
+  // 装飾フレーム
+  ctx.strokeStyle = capsule.rarity === "SSR" ? "#f59e0b" :
+                    capsule.rarity === "SR" ? "#8a7ab3" :
+                    capsule.rarity === "R" ? "#6fb191" : "#b5b5b5";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(30, 30, W - 60, H - 60);
+
   ctx.fillStyle = "#1a1a1a";
   ctx.font = "500 28px 'Noto Sans JP', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("こころのガチャ", W / 2, 80);
+  ctx.fillText("こころのガチャ", W / 2, 90);
 
-  // カテゴリ
   ctx.fillStyle = "#666";
   ctx.font = "400 16px 'Noto Sans JP', sans-serif";
-  ctx.fillText(capsule.category, W / 2, 140);
+  ctx.fillText(capsule.category + " · " + capsule.rarity, W / 2, 140);
 
-  // メッセージ (折り返し)
   ctx.fillStyle = "#1a1a1a";
-  ctx.font = "500 30px 'Noto Sans JP', sans-serif";
-  const lines = wrapText(ctx, capsule.message, W - 80);
-  const startY = H / 2 - (lines.length * 50) / 2 + 20;
-  lines.forEach((line, i) => {
-    ctx.fillText(line, W / 2, startY + i * 50);
-  });
+  ctx.font = "600 30px 'Shippori Mincho', 'Noto Sans JP', serif";
+  const lines = wrapText(ctx, capsule.message, W - 100);
+  const startY = H / 2 - (lines.length * 52) / 2 + 20;
+  lines.forEach((line, i) => ctx.fillText(line, W / 2, startY + i * 52));
 
-  // フッター
   ctx.fillStyle = "#888";
   ctx.font = "300 14px 'Noto Sans JP', sans-serif";
-  ctx.fillText("#こころのガチャ", W / 2, H - 50);
+  ctx.fillText("#こころのガチャ", W / 2, H - 60);
 
   return canvas.toDataURL("image/png");
 }
-
 function wrapText(ctx, text, maxWidth) {
   const chars = text.split("");
-  const lines = [];
-  let cur = "";
+  const lines = []; let cur = "";
   for (let i = 0; i < chars.length; i++) {
     const test = cur + chars[i];
-    if (ctx.measureText(test).width > maxWidth && cur.length > 0) {
-      lines.push(cur);
-      cur = chars[i];
-    } else {
-      cur = test;
-    }
+    if (ctx.measureText(test).width > maxWidth && cur.length > 0) { lines.push(cur); cur = chars[i]; }
+    else cur = test;
   }
   if (cur) lines.push(cur);
   return lines;
 }
 
 // ========================================
-// 15. トースト通知
+// 16. トースト
 // ========================================
 
 let toastTimer = null;
@@ -767,52 +692,49 @@ function showToast(text) {
 }
 
 // ========================================
-// 16. ビュー (タブ) 切替
+// 17. ビュー
 // ========================================
 
 function switchView(name) {
-  $(".view").removeClass("active");
+  $(".view").removeClass("active slide-from-left");
   $("#view-" + name).addClass("active");
   $(".nav-btn").removeClass("active");
   $('.nav-btn[data-view="' + name + '"]').addClass("active");
-  if (name === "collection") {
-    renderCollection();
-    $("#nav-collection-dot").removeClass("show");
-  }
+  if (name === "collection") { renderCollection(); $("#nav-collection-dot").removeClass("show"); }
   if (name === "favorites") renderFavorites();
-  // ページ上部にスクロール
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 // ========================================
-// 17. モーダル
+// 18. モーダル
 // ========================================
 
-function openModal(id) {
-  $("#" + id).addClass("active").attr("aria-hidden", "false");
-}
-function closeModal(id) {
-  $("#" + id).removeClass("active").attr("aria-hidden", "true");
-}
+function openModal(id) { $("#" + id).addClass("active").attr("aria-hidden", "false"); }
+function closeModal(id) { $("#" + id).removeClass("active").attr("aria-hidden", "true"); }
 
 // ========================================
-// 18. 初期化
+// 19. 初期化
 // ========================================
 
 $(function () {
   migrateLegacy();
   currentMood = "calm";
+  applyTimeTheme();
+  applyMood("calm");
 
-  // 初期表示
-  updateHeaderUI();
-  updateStatusUI();
+  // 1分ごとに時間帯チェック (時間境界で切替えるため)
+  setInterval(applyTimeTheme, 60000);
+
+  updateHeaderUI(false);
+  updateStatusUI(false);
   updateSettingsUI();
   updatePityHint();
   updateDailyCardUI();
   renderCollection();
   renderFavorites();
+  updateFavoriteBtn();
 
-  // ガチャボタン
+  // ガチャ
   $("#gacha-button").on("click", () => { SE.click(); runGacha(); });
 
   // 気分セレクト
@@ -821,26 +743,24 @@ $(function () {
     $(".mood-btn").removeClass("active");
     $(this).addClass("active");
     currentMood = $(this).data("mood");
+    applyMood(currentMood);
   });
 
-  // デイリーカード
+  // デイリー
   $("#daily-card").on("click", function () {
     if (isDailyOpened()) return;
     SE.daily();
-    const cap = openDaily();
+    openDaily();
     updateDailyCardUI();
-    updateStatusUI();
+    updateStatusUI(true);
     renderCollection();
     showToast("今日の言葉が届きました");
   });
 
   // タブ切替
-  $(".nav-btn").on("click", function () {
-    SE.tap();
-    switchView($(this).data("view"));
-  });
+  $(".nav-btn").on("click", function () { SE.tap(); switchView($(this).data("view")); });
 
-  // 図鑑フィルター
+  // 図鑑フィルタ
   $(document).on("click", ".filter-btn", function () {
     SE.tap();
     $(".filter-btn").removeClass("active");
@@ -849,55 +769,53 @@ $(function () {
     renderCollection();
   });
 
-  // 図鑑カードクリック → 詳細
+  // 図鑑詳細
   $(document).on("click", ".coll-card", function () {
     const id = parseInt($(this).data("id"), 10);
     const c = capsules.find(x => x.id === id);
     if (!c) return;
     const collected = getCollected()[id];
-    if (!collected) {
-      showToast("まだ取得していません");
-      return;
-    }
+    if (!collected) { showToast("まだ取得していません"); return; }
     SE.tap();
     const firstAt = new Date(collected.firstAt);
+    const favIconHtml = isFavorite(c.id) ? icon("heart", "icon-sm") : icon("heart-o", "icon-sm");
+    const favText = isFavorite(c.id) ? ' お気に入りから外す' : ' お気に入りに追加';
     $("#card-detail-body").html(
       '<div class="card-detail-rarity rarity-' + c.rarity.toLowerCase() + '">' + c.rarity + '</div>' +
       '<p class="card-detail-category">' + c.category + '</p>' +
       '<p class="card-detail-message">' + escapeHtml(c.message) + '</p>' +
       '<p class="card-detail-meta">取得日：' + firstAt.getFullYear() + '/' + (firstAt.getMonth() + 1) + '/' + firstAt.getDate() + '</p>' +
-      '<button class="card-detail-fav" data-id="' + c.id + '">' + (isFavorite(c.id) ? '♥ お気に入りから外す' : '♡ お気に入りに追加') + '</button>'
+      '<button class="card-detail-fav" data-id="' + c.id + '">' + favIconHtml + favText + '</button>'
     );
     openModal("card-detail-modal");
   });
 
-  // 詳細モーダルのお気に入りトグル
   $(document).on("click", ".card-detail-fav", function () {
     const id = parseInt($(this).data("id"), 10);
     toggleFavorite(id);
-    $(this).text(isFavorite(id) ? '♥ お気に入りから外す' : '♡ お気に入りに追加');
+    const favIconHtml = isFavorite(id) ? icon("heart", "icon-sm") : icon("heart-o", "icon-sm");
+    const favText = isFavorite(id) ? ' お気に入りから外す' : ' お気に入りに追加';
+    $(this).html(favIconHtml + favText);
     if (id === currentResultId) updateFavoriteBtn();
     renderFavorites();
-    updateStatusUI();
+    updateStatusUI(true);
   });
 
-  // お気に入り解除 (リスト内)
   $(document).on("click", ".fav-remove", function (e) {
     e.stopPropagation();
     const id = parseInt($(this).data("id"), 10);
     toggleFavorite(id);
     if (id === currentResultId) updateFavoriteBtn();
     renderFavorites();
-    updateStatusUI();
+    updateStatusUI(true);
   });
 
-  // 結果カードのハート
   $("#favorite-btn").on("click", function () {
     if (!currentResultId) return;
     toggleFavorite(currentResultId);
     updateFavoriteBtn();
     renderFavorites();
-    updateStatusUI();
+    updateStatusUI(true);
   });
 
   // シェア
@@ -910,56 +828,45 @@ $(function () {
     $("#share-download").attr("href", dataUrl);
     openModal("share-modal");
   });
-
   $("#share-copy").on("click", function () {
     if (!currentResultId) return;
     const cap = capsules.find(c => c.id === currentResultId);
     if (!cap) return;
     const text = "「" + cap.message + "」\n— こころのガチャ #" + cap.rarity;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => showToast("コピーしました"));
-    } else {
-      showToast("コピーに失敗しました");
-    }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showToast("コピーしました"));
+    else showToast("コピーに失敗しました");
   });
 
-  // 設定モーダル
+  // 設定
   $("#settings-btn").on("click", () => { SE.tap(); updateSettingsUI(); openModal("settings-modal"); });
-
-  // モーダル閉じる (×ボタン or 背景クリック)
-  $(document).on("click", "[data-close]", function () {
-    closeModal($(this).data("close"));
-  });
+  $(document).on("click", "[data-close]", function () { closeModal($(this).data("close")); });
 
   // サウンドトグル
-  $("#sound-toggle").on("change", function () {
-    lsSet(KEYS.soundOn, this.checked);
-    if (this.checked) SE.tap();
-  });
+  $("#sound-toggle").on("change", function () { lsSet(KEYS.soundOn, this.checked); if (this.checked) SE.tap(); });
 
   // リセット
   $("#reset-btn").on("click", function () {
     if (!confirm("すべての進捗をリセットします。よろしいですか？")) return;
-    Object.keys(KEYS).forEach(k => {
-      if (k.indexOf("legacy") === -1) localStorage.removeItem(KEYS[k]);
-    });
-    updateHeaderUI();
-    updateStatusUI();
+    Object.keys(KEYS).forEach(k => { if (k.indexOf("legacy") === -1) localStorage.removeItem(KEYS[k]); });
+    currentResultId = null;
+    updateHeaderUI(false);
+    updateStatusUI(false);
     updateSettingsUI();
     updatePityHint();
     updateDailyCardUI();
     renderCollection();
     renderFavorites();
+    updateFavoriteBtn();
+    $("#result-card").addClass("result-empty");
+    $("#category").text("今日のカプセル");
+    $("#message").text("ボタンを押すと、言葉が出てきます。");
+    $("#share-btn").prop("disabled", true);
     closeModal("settings-modal");
     showToast("リセットしました");
   });
 
-  // ESC でモーダル閉じる
+  // ESCで閉じる
   $(document).on("keydown", function (e) {
-    if (e.key === "Escape") {
-      $(".modal.active").each(function () {
-        closeModal(this.id);
-      });
-    }
+    if (e.key === "Escape") $(".modal.active").each(function () { closeModal(this.id); });
   });
 });
